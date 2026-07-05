@@ -1,0 +1,2 @@
+- [Discord bot architecture](discord-bot-arch.md) — bot runs alongside Express in api-server; key patterns for intent setup, command routing, and scheduler restore.
+- [DB URL precedence](db-url.md) — use NEON_DATABASE_URL first, DATABASE_URL second; Replit auto-populates DATABASE_URL with its own Postgres.
