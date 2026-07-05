@@ -1,0 +1,254 @@
+# Discord Study Companion Bot Specification
+
+## Project Overview
+
+Create a production-quality Discord bot that acts as a personal scripture study companion. The purpose of this bot is to help users stay consistent with their scripture and General Conference study by providing study plans, optional reminders, progress tracking, streak tracking, and statistics. The bot is **not** intended to replace the official Gospel Library app or the Church website. It should never display scripture text or General Conference talk content. Instead, it should only provide reading assignments and progress tracking, encouraging users to read through the official resources.
+
+The bot should be designed with clean, modular, maintainable code. Commands should use Discord slash commands, interactive buttons, select menus, modals, and embeds where appropriate to provide an intuitive user experience. I also plan to add **custom Discord emojis** for different books of scripture, conference icons, progress indicators, and other UI elements. Please make the embed and component layouts easy to update so custom emojis can be integrated throughout the bot later without requiring major code changes.
+
+## Study Content
+
+The bot should contain metadata only.
+
+For scriptures, store:
+
+* Standard Work
+* Book name
+* Book order
+* Number of chapters
+
+For General Conference, store:
+
+* Conference name (for example, April 2026)
+* Talk title
+* Speaker
+* Session (optional)
+* Order within the conference
+
+Do **not** store or display the actual scripture text or conference talk text.
+
+Initially, users should be able to choose from:
+
+* Old Testament
+* New Testament
+* Book of Mormon
+* Doctrine and Covenants
+* Pearl of Great Price
+* The two most recent General Conferences
+
+When creating a study plan, the bot should automatically divide the selected content into daily assignments based on the user's chosen schedule.
+
+## Conference Updates
+
+General Conference information should **not** be editable from Discord.
+
+There should be **no** admin commands for adding, editing, or removing conferences.
+
+Instead, I (the developer) will manually update the metadata every six months by adding the newest conference and removing the oldest conference from the list available for new study plans.
+
+Example:
+
+Current conferences:
+
+* April 2026
+* October 2025
+
+Six months later:
+
+Current conferences:
+
+* October 2026
+* April 2026
+
+Existing study plans must continue working even if they reference a conference that is no longer offered to new users.
+
+## Study Plans
+
+Users should be able to create multiple study plans.
+
+Each study plan should store:
+
+* Selected study source
+* Current position
+* Progress percentage
+* Reading history
+* Start date
+* Optional completion goal
+* Chapters or talks per day
+* Completion status
+
+Commands:
+
+* /plan create
+* /plan view
+* /plan edit
+* /plan delete
+* /plan list
+
+## Daily Reading
+
+The `/today` command should become the primary command users interact with.
+
+It should display:
+
+* Today's reading assignment for every active study plan
+* Current streak
+* Progress for each plan
+* Next reminder time (if enabled)
+
+Include a **Mark as Read** button whenever appropriate.
+
+Again, never display scripture or talk content.
+
+Only display references such as:
+
+Book of Mormon
+Alma 32–33
+
+or
+
+April 2026 General Conference
+"The Atonement of Jesus Christ"
+President Russell M. Nelson
+
+## Reading Completion
+
+Users should be able to mark today's reading complete by:
+
+* Using `/read`
+* Clicking the "Mark as Read" button in reminder DMs
+* Clicking the button in `/today` if applicable
+
+A completed reading updates:
+
+* Current streak
+* Longest streak
+* Reading history
+* Plan progress
+* Statistics
+
+Prevent duplicate completions for the same study plan on the same day.
+
+## Reminder System
+
+Reminders should be completely optional.
+
+Commands:
+
+* /reminder set
+* /reminder edit
+* /reminder view
+* /reminder disable
+
+Users should be able to configure:
+
+* Time
+* Time zone
+* Days of the week
+
+Reminders should be sent through Discord DMs.
+
+Reminder embeds should include buttons such as:
+
+* Mark as Read
+* View Today's Reading
+* Snooze (optional)
+
+## Statistics
+
+Each user should have persistent statistics.
+
+Track:
+
+* Current streak
+* Longest streak
+* Total reading days
+* Plans completed
+* Chapters completed
+* Talks completed
+* Overall completion percentage
+
+Commands:
+
+* /streak
+* /streak user
+* /stats
+* /stats user
+
+## Leaderboards
+
+Use one command:
+
+`/leaderboard`
+
+Options:
+
+Leaderboard Type
+
+* Current Streak
+* Longest Streak
+
+Scope
+
+* Server
+* Global
+
+Always display the Top 10 users.
+
+Server leaderboards should include only members currently in that server.
+
+Global leaderboards should include every user who has used the bot.
+
+If someone leaves a server, they should automatically disappear from that server's leaderboard while remaining eligible for the global leaderboard.
+
+## User Experience
+
+The bot should feel polished and easy to use.
+
+Use:
+
+* Embeds
+* Buttons
+* Select menus
+* Modals
+* Pagination where appropriate
+
+Avoid walls of text.
+
+Commands should respond with visually appealing embeds.
+
+The UI should be designed so replacing text with custom emojis later is simple.
+
+## Data Storage
+
+Persist all user data.
+
+Suggested data includes:
+
+* Users
+* Study plans
+* Reminder settings
+* Statistics
+* Reading history
+* Streak history
+* Conference metadata
+* Scripture metadata
+
+Choose a database that is reliable and easy to maintain in Replit.
+
+## Reliability
+
+The bot should:
+
+* Handle bot restarts without data loss.
+* Restore reminder schedules automatically after restarting.
+* Validate all user input.
+* Prevent duplicate data.
+* Gracefully handle missing permissions and DM failures.
+* Log unexpected errors without crashing.
+
+## Code Quality
+
+The project should be organized into clear modules with readable, maintainable code. Separate commands, database logic, scheduling, UI components, metadata, and utilities into appropriate files and folders. Avoid hardcoding values wherever practical. Use configuration files or structured metadata where appropriate.
+
+Throughout development, prioritize scalability and maintainability over quick shortcuts. I plan to continue expanding this bot with additional features in the future, so the architecture should make future additions straightforward without requiring major refactoring.
