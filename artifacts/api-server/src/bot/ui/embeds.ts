@@ -56,7 +56,7 @@ export function planListEmbed(plans: StudyPlan[], page = 0, pageSize = 5): Embed
     const pct = calcProgress(p.currentPosition, p.totalItems);
     const bar = buildProgressBar(pct, 8);
     const emoji = getSourceEmoji(p.sourceType, p.sourceId);
-    const status = p.isComplete ? "✅" : p.isActive ? "🟢" : "⏸️";
+    const status = p.isComplete ? "[Done]" : p.isActive ? "[Active]" : "[Paused]";
     return `${status} **${p.name}** (ID: \`${p.id}\`)\n${emoji} ${getPlanSourceLabel(p)}\n${bar} ${pct}%`;
   });
 

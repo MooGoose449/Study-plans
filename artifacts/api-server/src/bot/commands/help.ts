@@ -13,7 +13,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     .setDescription("Track your scripture and General Conference study, build streaks, and stay consistent.")
     .addFields(
       {
-        name: "📋 Plans",
+        name: "Plans",
         value: [
           "`/plan create` — Start a new study plan (scripture or General Conference)",
           "`/plan list` — See all your plans with progress",
@@ -23,7 +23,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         ].join("\n"),
       },
       {
-        name: "📖 Reading",
+        name: "Reading",
         value: [
           "`/today` — See what to read today across all your active plans",
           "`/read` — Mark today's reading complete (with optional plan selector)",
@@ -39,7 +39,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         ].join("\n"),
       },
       {
-        name: "📊 Stats & Leaderboards",
+        name: "Stats & Leaderboards",
         value: [
           "`/streak [user]` — View current and longest streak",
           "`/stats [user]` — Full reading statistics",
@@ -47,11 +47,11 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         ].join("\n"),
       },
       {
-        name: "🔧 Utility",
+        name: "Utility",
         value: ["`/ping` — Check the bot's latency and responsiveness"].join("\n"),
       },
       {
-        name: "💡 Tips",
+        name: "Tips",
         value: [
           "• Set a **goal date** when creating a plan — the bot calculates your required daily pace",
           "• Use `/today` every day and hit **Mark as Read** to build your streak",
