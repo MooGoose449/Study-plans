@@ -1,0 +1,39 @@
+{"level":30,"time":1783354160935,"pid":83,"hostname":"srv-d95f17rtqb8s73eoumn0-hibernate-5bb8cb854c-lmp44","req":{"id":2,"method":"GET","url":"/"},"res":{"statusCode":404},"responseTime":1,"msg":"request completed"}
+==> 
+==> Available at your primary URL https://study-plans.onrender.com
+==> 
+==> ///////////////////////////////////////////////////////////
+/opt/render/project/src/artifacts/api-server:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/api-server@0.0.0 start: `node --enable-source-maps ./dist/index.mjs`
+Command failed with signal "SIGTERM"
+==> Deploying...
+==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+==> Running '	pnpm --filter @workspace/api-server run start'
+> @workspace/api-server@0.0.0 start /opt/render/project/src/artifacts/api-server
+> node --enable-source-maps ./dist/index.mjs
+{"level":30,"time":1783354238412,"pid":84,"hostname":"srv-d95f17rtqb8s73eoumn0-hibernate-6fc8c56f7d-gs4nk","port":10000,"msg":"Server listening"}
+(node:84) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+To prepare for this change:
+- If you want the current behavior, explicitly use 'sslmode=verify-full'
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"level":30,"time":1783354238503,"pid":84,"hostname":"srv-d95f17rtqb8s73eoumn0-hibernate-6fc8c56f7d-gs4nk","url":"https://study-plans.onrender.com/api/healthz","intervalMinutes":5,"msg":"HTTP keep-alive started"}
+{"level":30,"time":1783354238506,"pid":84,"hostname":"srv-d95f17rtqb8s73eoumn0-hibernate-6fc8c56f7d-gs4nk","intervalMinutes":5,"msg":"DB keep-alive started"}
+{"level":30,"time":1783354238639,"pid":83,"hostname":"srv-d95f17rtqb8s73eoumn0-hibernate-5bb8cb854c-lmp44","req":{"id":3,"method":"GET","url":"/api/healthz"},"res":{"statusCode":200},"responseTime":3,"msg":"request completed"}
+{"level":30,"time":1783354239307,"pid":84,"hostname":"srv-d95f17rtqb8s73eoumn0-hibernate-6fc8c56f7d-gs4nk","req":{"id":1,"method":"HEAD","url":"/"},"res":{"statusCode":404},"responseTime":2,"msg":"request completed"}
+{"level":30,"time":1783354239616,"pid":84,"hostname":"srv-d95f17rtqb8s73eoumn0-hibernate-6fc8c56f7d-gs4nk","msg":"Discord bot started"}
+{"level":30,"time":1783354239619,"pid":84,"hostname":"srv-d95f17rtqb8s73eoumn0-hibernate-6fc8c56f7d-gs4nk","tag":"StudyPlans#8385","msg":"Discord bot connected and ready"}
+{"level":30,"time":1783354239695,"pid":84,"hostname":"srv-d95f17rtqb8s73eoumn0-hibernate-6fc8c56f7d-gs4nk","restored":0,"failed":0,"msg":"Restored reminder schedules"}
+/opt/render/project/src/artifacts/api-server:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/api-server@0.0.0 start: `node --enable-source-maps ./dist/index.mjs`
+Command failed with signal "SIGTERM"
+==> Your service is live 🎉
+{"level":30,"time":1783354244119,"pid":84,"hostname":"srv-d95f17rtqb8s73eoumn0-hibernate-6fc8c56f7d-gs4nk","req":{"id":2,"method":"GET","url":"/"},"res":{"statusCode":404},"responseTime":1,"msg":"request completed"}
+==> 
+==> ///////////////////////////////////////////////////////////
+==> 
+==> Available at your primary URL https://study-plans.onrender.com
+==> 
+==> ///////////////////////////////////////////////////////////
