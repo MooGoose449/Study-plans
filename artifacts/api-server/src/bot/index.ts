@@ -32,7 +32,7 @@ export async function startBot(): Promise<Client> {
 
   // ── Events ────────────────────────────────────────────────────────────────
 
-  client.once("ready", async (c) => {
+  client.once("clientReady", async (c) => {
     await onReady(c).catch((err) =>
       logger.error({ err }, "Error in ready event handler"),
     );
