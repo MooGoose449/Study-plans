@@ -6,6 +6,7 @@ import * as reminder from "./reminder.js";
 import * as streak from "./streak.js";
 import * as stats from "./stats.js";
 import * as leaderboard from "./leaderboard.js";
+import * as help from "./help.js";
 
 // Use a loose data type to accommodate SlashCommandOptionsOnlyBuilder,
 // SlashCommandSubcommandsOnlyBuilder, and SlashCommandBuilder equally.
@@ -22,6 +23,7 @@ export const commands: Command[] = [
   streak,
   stats,
   leaderboard,
+  help,
 ];
 
 /** Map from command name to handler. */
