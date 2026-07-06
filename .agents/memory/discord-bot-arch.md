@@ -34,4 +34,4 @@ After any command change: rebuild, then run `pnpm --filter @workspace/api-server
 Maintained in `artifacts/api-server/src/bot/metadata/conferences.ts`. Updated manually every 6 months. Plans referencing removed conferences fall back to "Talk #N" display gracefully.
 
 ## Event name
-Use `clientReady` not `ready` — discord.js v14 renamed the once-fire ready event and will remove the old name in v15.
+Use `ready` not `clientReady` — discord.js v14 uses `ready` for the once-fire ready event. v15 renames it to `clientReady` and will remove the old name. Using `clientReady` in v14 silently never fires, leaving the bot "offline" with no reminders restored.
