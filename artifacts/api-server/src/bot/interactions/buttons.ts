@@ -37,6 +37,10 @@ export async function handleButton(
       await handleViewToday(interaction, discordId);
       break;
 
+    case "plan_delete_confirm":
+      await handlePlanDeleteConfirm(interaction, discordId, Number(params[0]));
+      break;
+
     case "cancel":
       await interaction.update({ content: "Cancelled.", embeds: [], components: [] });
       break;
@@ -87,6 +91,31 @@ async function handleMarkRead(
   await interaction.followUp({
     embeds: [markReadSuccessEmbed(plan, result.newStreak, result.isComplete)],
     ephemeral: true,
+  });
+}
+
+async function handlePlanDeleteConfirm(
+  interaction: ButtonInteraction,
+  discordId: string,
+  planId: number,
+) {
+  if (isNaN(planId)) {
+    await interaction.update({ content: "Invalid plan ID.", embeds: [], components: [] });
+    return;
+  }
+
+  await interaction.deferUpdate();
+
+  const plan = await getPlan(planId, discordId);
+  if (!plan) {
+    await interaction.editReply({ content: "Plan not found.", embeds: [], components: [] });
+    return;
+  }
+
+  await deletePlan(planId, discordId);
+  await interaction.editReply({
+    embeds: [successEmbed(`Plan **${plan.name}** has been deleted.`)],
+    components: [],
   });
 }
 

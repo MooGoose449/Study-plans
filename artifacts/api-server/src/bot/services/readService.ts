@@ -76,6 +76,24 @@ export async function markAsUnread(
       [restoredPosition, planId],
     );
 
+    // Check if there are any OTHER reads today across all plans for this user.
+    // We already deleted the row above, so any remaining row means today still has activity.
+    const otherReadsToday = await client.query(
+      `SELECT 1 FROM reading_history WHERE discord_id = $1 AND read_date = $2 LIMIT 1`,
+      [discordId, today],
+    );
+    const wasOnlyReadToday = otherReadsToday.rows.length === 0;
+
+    // Find the most recent read date still in history (to restore last_read_date correctly).
+    const prevReadResult = await client.query<{ read_date: string }>(
+      `SELECT read_date FROM reading_history
+        WHERE discord_id = $1
+        ORDER BY read_date DESC
+        LIMIT 1`,
+      [discordId],
+    );
+    const prevReadDate = prevReadResult.rows[0]?.read_date ?? null;
+
     const statsResult = await client.query<{
       current_streak: number;
       longest_streak: number;
@@ -95,7 +113,6 @@ export async function markAsUnread(
 
     if (statsResult.rows.length > 0) {
       const stats = statsResult.rows[0]!;
-      const wasOnlyReadToday = stats.last_read_date === today;
 
       const chaptersCompleted =
         plan.source_type === "scripture"
@@ -136,7 +153,7 @@ export async function markAsUnread(
           plansCompleted,
           chaptersCompleted,
           talksCompleted,
-          wasOnlyReadToday ? null : stats.last_read_date,
+          wasOnlyReadToday ? prevReadDate : stats.last_read_date,
           discordId,
         ],
       );

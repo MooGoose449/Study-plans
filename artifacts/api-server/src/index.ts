@@ -1,14 +1,13 @@
+import http from "http";
 import app from "./app";
-import { startBot } from "./bot/index";
+import { startBot, stopBot } from "./bot/index";
 import { logger } from "./lib/logger";
 import { pool } from "@workspace/db";
 
-const PING_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes — keeps Render free-tier from sleeping (spins down after 15 min)
+const PING_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes — keeps Render free-tier from sleeping
 
 /** Ping our own health endpoint to prevent Render free-tier spin-down. */
-function startHttpKeepAlive(port: number): void {
-  // Prefer the public Render URL so the ping goes through the load balancer.
-  // Fall back to localhost so it always works even without that var set.
+function startHttpKeepAlive(port: number): NodeJS.Timeout {
   const raw =
     process.env["RENDER_EXTERNAL_URL"] ??
     process.env["APP_URL"] ??
@@ -29,13 +28,13 @@ function startHttpKeepAlive(port: number): void {
   };
 
   void sendPing();
-  setInterval(sendPing, PING_INTERVAL_MS);
-
+  const interval = setInterval(sendPing, PING_INTERVAL_MS);
   logger.info({ url, intervalMinutes: 5 }, "HTTP keep-alive started");
+  return interval;
 }
 
 /** Run a cheap query every 5 minutes to keep the Neon connection warm. */
-function startDbKeepAlive(): void {
+function startDbKeepAlive(): NodeJS.Timeout {
   const sendPing = async () => {
     try {
       await pool.query("SELECT 1");
@@ -46,9 +45,9 @@ function startDbKeepAlive(): void {
   };
 
   void sendPing();
-  setInterval(sendPing, PING_INTERVAL_MS);
-
+  const interval = setInterval(sendPing, PING_INTERVAL_MS);
   logger.info({ intervalMinutes: 5 }, "DB keep-alive started");
+  return interval;
 }
 
 const rawPort = process.env["PORT"];
@@ -63,19 +62,22 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-// Start Express server
-app.listen(port, (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
-    process.exit(1);
-  }
+// Create HTTP server explicitly so we can close it on shutdown
+const server = http.createServer(app);
+
+server.on("error", (err) => {
+  logger.error({ err }, "Server error");
+  process.exit(1);
+});
+
+server.listen(port, () => {
   logger.info({ port }, "Server listening");
 
   startHttpKeepAlive(port);
   startDbKeepAlive();
 });
 
-// Start Discord bot
+// Start Discord bot (non-fatal if it fails — server keeps running)
 startBot()
   .then(() => {
     logger.info("Discord bot started");
@@ -84,11 +86,24 @@ startBot()
     logger.error({ err }, "Failed to start Discord bot — server continues running");
   });
 
-// Graceful shutdown
-process.on("SIGTERM", () => {
-  logger.info("SIGTERM received — shutting down");
-  void import("./bot/index").then(({ stopBot }) => {
-    stopBot();
-    process.exit(0);
+// Graceful shutdown — close bot, HTTP server, and DB pool before exiting
+async function shutdown(signal: string) {
+  logger.info({ signal }, "Shutdown signal received");
+
+  stopBot();
+
+  await new Promise<void>((resolve) => {
+    server.close((err) => {
+      if (err) logger.warn({ err }, "Error closing HTTP server");
+      resolve();
+    });
   });
-});
+
+  await pool.end().catch((err) => logger.warn({ err }, "Error closing DB pool"));
+
+  logger.info("Shutdown complete");
+  process.exit(0);
+}
+
+process.on("SIGTERM", () => { void shutdown("SIGTERM"); });
+process.on("SIGINT",  () => { void shutdown("SIGINT"); });
