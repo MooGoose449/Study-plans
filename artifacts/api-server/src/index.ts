@@ -61,6 +61,7 @@ app.listen(port, (err) => {
   }
   logger.info({ port }, "Server listening");
 
+  // Start keep-alive pings immediately
   startHttpKeepAlive(port);
   startDbKeepAlive();
 });
