@@ -37,10 +37,6 @@ export async function handleButton(
       await handleViewToday(interaction, discordId);
       break;
 
-    case "plan_delete_confirm":
-      await handlePlanDeleteConfirm(interaction, discordId, Number(params[0]));
-      break;
-
     case "cancel":
       await interaction.update({ content: "Cancelled.", embeds: [], components: [] });
       break;
@@ -123,27 +119,5 @@ async function handleViewToday(
   await interaction.editReply({
     embeds,
     components: rows.slice(0, 5),
-  });
-}
-
-async function handlePlanDeleteConfirm(
-  interaction: ButtonInteraction,
-  discordId: string,
-  planId: number,
-) {
-  await interaction.deferUpdate();
-
-  const deleted = await deletePlan(planId, discordId);
-  if (!deleted) {
-    await interaction.followUp({
-      embeds: [errorEmbed("Plan not found or already deleted.")],
-      ephemeral: true,
-    });
-    return;
-  }
-
-  await interaction.editReply({
-    embeds: [successEmbed(`Plan deleted successfully.`)],
-    components: [],
   });
 }
