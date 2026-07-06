@@ -42,6 +42,7 @@ export const EMOJI = {
   LOADING:              "",
   GLOBE:                "",
   PEOPLE:               "",
+  UNDO:                 "↩️",
 
   // Progress bar pieces (text characters, not emoji)
   PROGRESS_FILLED:      "█",

@@ -47,6 +47,10 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         ].join("\n"),
       },
       {
+        name: "🔧 Utility",
+        value: ["`/ping` — Check the bot's latency and responsiveness"].join("\n"),
+      },
+      {
         name: "💡 Tips",
         value: [
           "• Set a **goal date** when creating a plan — the bot calculates your required daily pace",
