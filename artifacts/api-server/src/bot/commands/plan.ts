@@ -11,7 +11,6 @@ import {
   getActivePlans,
   getUserPlans,
   getPlan,
-  deletePlan,
   updatePlan,
 } from "../services/planService.js";
 import { upsertUser } from "../services/userService.js";
@@ -28,7 +27,6 @@ import {
   sourceTypeSelectMenu,
   planSelectMenu,
   planEditFieldMenu,
-  confirmRow,
   paginationRow,
 } from "../ui/components.js";
 
@@ -60,10 +58,7 @@ export const data = new SlashCommandBuilder()
   .addSubcommand((sub) =>
     sub
       .setName("delete")
-      .setDescription("Delete a study plan")
-      .addIntegerOption((o) =>
-        o.setName("id").setDescription("Plan ID to delete").setRequired(false),
-      ),
+      .setDescription("Delete a study plan — choose from a list and confirm by typing the plan name"),
   );
 
 export async function execute(
@@ -209,37 +204,18 @@ async function handleDelete(
   interaction: ChatInputCommandInteraction,
   discordId: string,
 ) {
-  const planId = interaction.options.getInteger("id");
-
-  if (!planId) {
-    const plans = await getUserPlans(discordId);
-    if (plans.length === 0) {
-      await interaction.reply({
-        embeds: [errorEmbed("No plans to delete.")],
-        ephemeral: true,
-      });
-      return;
-    }
+  const plans = await getUserPlans(discordId);
+  if (plans.length === 0) {
     await interaction.reply({
-      content: "Select a plan to delete:",
-      components: [planSelectMenu(plans, "sel:plan_delete_select")],
-      ephemeral: true,
-    });
-    return;
-  }
-
-  const plan = await getPlan(planId, discordId);
-  if (!plan) {
-    await interaction.reply({
-      embeds: [errorEmbed(`Plan \`${planId}\` not found.`)],
+      embeds: [errorEmbed("You have no plans to delete.")],
       ephemeral: true,
     });
     return;
   }
 
   await interaction.reply({
-    content: `Are you sure you want to delete **${plan.name}**? This cannot be undone.`,
-    components: [confirmRow(`btn:plan_delete_confirm:${plan.id}`, "btn:cancel")],
+    content: "Select a plan to delete:",
+    components: [planSelectMenu(plans, "sel:plan_delete_select")],
     ephemeral: true,
   });
 }
