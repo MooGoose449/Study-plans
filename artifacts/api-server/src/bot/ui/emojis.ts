@@ -1,67 +1,56 @@
-// Emoji constants — centralised here so custom Discord emojis can be swapped
-// in later without touching any other file.
-//
-// To use a custom Discord emoji, replace a string such as "📖" with the
-// Discord emoji format: "<:emoji_name:emoji_id>" (for static) or
-// "<a:emoji_name:emoji_id>" (for animated).
-//
-// Example:
-//   export const EMOJI_BOOK = "<:scriptures:1234567890123456789>";
+// Two emojis are used throughout the bot:
+//   <:lds:1523480103189876836>  — used for all scripture and conference sources
+//   🔔                          — used for reminders only
+
+const LDS = "<:lds:1523480103189876836>";
+const BELL = "🔔";
 
 export const EMOJI = {
-  // Standard works
-  OLD_TESTAMENT:      "📜",
-  NEW_TESTAMENT:      "✝️",
-  BOOK_OF_MORMON:     "📖",
-  DOC_AND_COV:        "🕊️",
-  PEARL_OF_GREAT_PRICE: "⭐",
-  CONFERENCE:         "🎙️",
+  // Standard works — all use the lds server emoji
+  OLD_TESTAMENT:        LDS,
+  NEW_TESTAMENT:        LDS,
+  BOOK_OF_MORMON:       LDS,
+  DOC_AND_COV:          LDS,
+  PEARL_OF_GREAT_PRICE: LDS,
+  CONFERENCE:           LDS,
 
-  // Progress / status
-  COMPLETE:           "✅",
-  INCOMPLETE:         "⬜",
-  STREAK:             "🔥",
-  STAR:               "⭐",
-  TROPHY:             "🏆",
-  MEDAL_GOLD:         "🥇",
-  MEDAL_SILVER:       "🥈",
-  MEDAL_BRONZE:       "🥉",
+  // Progress / status — no emoji
+  COMPLETE:             "",
+  INCOMPLETE:           "",
+  STREAK:               "",
+  STAR:                 "",
+  TROPHY:               "",
+  MEDAL_GOLD:           "",
+  MEDAL_SILVER:         "",
+  MEDAL_BRONZE:         "",
 
-  // UI
-  CALENDAR:           "📅",
-  CLOCK:              "🕐",
-  BELL:               "🔔",
-  BELL_OFF:           "🔕",
-  CHART:              "📊",
-  PENCIL:             "✏️",
-  TRASH:              "🗑️",
-  PLUS:               "➕",
-  CHECK:              "✔️",
-  CROSS:              "❌",
-  INFO:               "ℹ️",
-  BOOK:               "📗",
-  PIN:                "📌",
-  ARROW_RIGHT:        "➡️",
-  LOADING:            "⏳",
-  GLOBE:              "🌐",
-  PEOPLE:             "👥",
+  // UI — no emoji (except bell for reminders)
+  CALENDAR:             "",
+  CLOCK:                "",
+  BELL:                 BELL,
+  BELL_OFF:             BELL,
+  CHART:                "",
+  PENCIL:               "",
+  TRASH:                "",
+  PLUS:                 "",
+  CHECK:                "",
+  CROSS:                "",
+  INFO:                 "",
+  BOOK:                 LDS,
+  PIN:                  "",
+  ARROW_RIGHT:          "",
+  LOADING:              "",
+  GLOBE:                "",
+  PEOPLE:               "",
 
-  // Progress bar pieces (text-based, no emoji needed)
-  PROGRESS_FILLED:    "█",
-  PROGRESS_EMPTY:     "░",
+  // Progress bar pieces (text characters, not emoji)
+  PROGRESS_FILLED:      "█",
+  PROGRESS_EMPTY:       "░",
 } as const;
 
 /** Get the emoji for a given source (standard work ID or "conference"). */
 export function getSourceEmoji(sourceType: "scripture" | "conference", sourceId?: string): string {
-  if (sourceType === "conference") return EMOJI.CONFERENCE;
-  switch (sourceId) {
-    case "OLD_TESTAMENT":          return EMOJI.OLD_TESTAMENT;
-    case "NEW_TESTAMENT":          return EMOJI.NEW_TESTAMENT;
-    case "BOOK_OF_MORMON":         return EMOJI.BOOK_OF_MORMON;
-    case "DOC_AND_COV":            return EMOJI.DOC_AND_COV;
-    case "PEARL_OF_GREAT_PRICE":   return EMOJI.PEARL_OF_GREAT_PRICE;
-    default:                       return EMOJI.BOOK;
-  }
+  return LDS;
 }
 
 /** Build a simple text progress bar. */
