@@ -3,7 +3,7 @@ import { startBot } from "./bot/index";
 import { logger } from "./lib/logger";
 import { pool } from "@workspace/db";
 
-const PING_INTERVAL_MS = 14 * 60 * 1000; // 14 minutes
+const PING_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes — keeps Render free-tier from sleeping (spins down after 15 min)
 
 /** Ping our own health endpoint to prevent Render free-tier spin-down. */
 function startHttpKeepAlive(port: number): void {
@@ -24,10 +24,10 @@ function startHttpKeepAlive(port: number): void {
     }
   }, PING_INTERVAL_MS);
 
-  logger.info({ url, intervalMinutes: 14 }, "HTTP keep-alive started");
+  logger.info({ url, intervalMinutes: 5 }, "HTTP keep-alive started");
 }
 
-/** Run a cheap query every 14 minutes to keep the Neon connection warm. */
+/** Run a cheap query every 5 minutes to keep the Neon connection warm. */
 function startDbKeepAlive(): void {
   setInterval(async () => {
     try {
@@ -38,7 +38,7 @@ function startDbKeepAlive(): void {
     }
   }, PING_INTERVAL_MS);
 
-  logger.info({ intervalMinutes: 14 }, "DB keep-alive started");
+  logger.info({ intervalMinutes: 5 }, "DB keep-alive started");
 }
 
 const rawPort = process.env["PORT"];
