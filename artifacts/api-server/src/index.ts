@@ -1,12 +1,60 @@
 import app from "./app";
+import { startBot } from "./bot/index";
 import { logger } from "./lib/logger";
+import { pool } from "@workspace/db";
+
+const PING_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes — keeps Render free-tier from sleeping (spins down after 15 min)
+
+/** Ping our own health endpoint to prevent Render free-tier spin-down. */
+function startHttpKeepAlive(port: number): void {
+  // Prefer the public Render URL so the ping goes through the load balancer.
+  // Fall back to localhost so it always works even without that var set.
+  const raw =
+    process.env["RENDER_EXTERNAL_URL"] ??
+    process.env["APP_URL"] ??
+    `http://localhost:${port}`;
+  const url = new URL("/api/healthz", raw.replace(/\/$/, "")).toString();
+
+  const sendPing = async () => {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        logger.debug({ status: res.status }, "Keep-alive HTTP ping");
+      } else {
+        logger.warn({ status: res.status }, "Keep-alive HTTP ping returned non-OK status");
+      }
+    } catch (err) {
+      logger.warn({ err }, "Keep-alive HTTP ping failed");
+    }
+  };
+
+  void sendPing();
+  setInterval(sendPing, PING_INTERVAL_MS);
+
+  logger.info({ url, intervalMinutes: 5 }, "HTTP keep-alive started");
+}
+
+/** Run a cheap query every 5 minutes to keep the Neon connection warm. */
+function startDbKeepAlive(): void {
+  const sendPing = async () => {
+    try {
+      await pool.query("SELECT 1");
+      logger.debug("Keep-alive DB ping");
+    } catch (err) {
+      logger.warn({ err }, "Keep-alive DB ping failed");
+    }
+  };
+
+  void sendPing();
+  setInterval(sendPing, PING_INTERVAL_MS);
+
+  logger.info({ intervalMinutes: 5 }, "DB keep-alive started");
+}
 
 const rawPort = process.env["PORT"];
 
 if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
+  throw new Error("PORT environment variable is required but was not provided.");
 }
 
 const port = Number(rawPort);
@@ -15,34 +63,32 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
+// Start Express server
 app.listen(port, (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
     process.exit(1);
   }
-
   logger.info({ port }, "Server listening");
 
-  // Render free tier spins down after 15 minutes of inactivity.
-  // Ping our own healthz endpoint every 14 minutes to keep the instance warm.
-  const renderUrl = process.env["RENDER_EXTERNAL_URL"];
-  if (renderUrl) {
-    const pingUrl = new URL("/api/healthz", renderUrl).toString();
-    logger.info({ pingUrl }, "Render wake-up ping enabled");
+  startHttpKeepAlive(port);
+  startDbKeepAlive();
+});
 
-    setInterval(async () => {
-      try {
-        const res = await fetch(pingUrl);
-        if (res.ok) {
-          logger.info({ status: res.status }, "Render wake-up ping sent");
-        } else {
-          logger.warn({ status: res.status }, "Render wake-up ping returned non-OK status");
-        }
-      } catch (err) {
-        logger.warn({ err }, "Render wake-up ping failed");
-      }
-    }, 14 * 60 * 1000);
-  } else {
-    logger.info("Render wake-up ping disabled (RENDER_EXTERNAL_URL not set)");
-  }
+// Start Discord bot
+startBot()
+  .then(() => {
+    logger.info("Discord bot started");
+  })
+  .catch((err) => {
+    logger.error({ err }, "Failed to start Discord bot — server continues running");
+  });
+
+// Graceful shutdown
+process.on("SIGTERM", () => {
+  logger.info("SIGTERM received — shutting down");
+  void import("./bot/index").then(({ stopBot }) => {
+    stopBot();
+    process.exit(0);
+  });
 });
