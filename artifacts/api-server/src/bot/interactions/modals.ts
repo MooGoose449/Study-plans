@@ -4,6 +4,7 @@ import {
   createPlan,
   getPlan,
   updatePlan,
+  deletePlan,
   getSourceTotalItems,
 } from "../services/planService.js";
 import { upsertReminderSettings } from "../services/reminderService.js";
@@ -45,6 +46,10 @@ export async function handleModal(
 
     case "plan_edit":
       await handlePlanEdit(interaction, discordId, Number(params[0]), params[1]!);
+      break;
+
+    case "plan_delete_confirm":
+      await handlePlanDeleteConfirm(interaction, discordId, Number(params[0]));
       break;
 
     case "reminder_set":
@@ -118,7 +123,7 @@ async function handlePlanCreate(
   });
 }
 
-// ── Plan editing ──────────────────────────────────────────────────────────
+// ── Plan editing ─────────────────────────────────────────────────────────
 
 async function handlePlanEdit(
   interaction: ModalSubmitInteraction,
@@ -164,6 +169,49 @@ async function handlePlanEdit(
   const updated = await getPlan(planId, discordId);
   await interaction.reply({
     embeds: [planDetailEmbed(updated ?? plan)],
+    ephemeral: true,
+  });
+}
+
+// ── Plan deletion confirmation ────────────────────────────────────────────
+
+async function handlePlanDeleteConfirm(
+  interaction: ModalSubmitInteraction,
+  discordId: string,
+  planId: number,
+) {
+  const confirmedName = interaction.fields.getTextInputValue("plan_name_confirm").trim();
+  const plan = await getPlan(planId, discordId);
+
+  if (!plan) {
+    await interaction.reply({
+      embeds: [errorEmbed("Plan not found.")],
+      ephemeral: true,
+    });
+    return;
+  }
+
+  // Check if the user typed the correct plan name
+  if (confirmedName !== plan.name) {
+    await interaction.reply({
+      embeds: [errorEmbed(`Plan name does not match. Expected **${plan.name}**, got **${confirmedName}**.`)],
+      ephemeral: true,
+    });
+    return;
+  }
+
+  // Delete the plan
+  const deleted = await deletePlan(planId, discordId);
+  if (!deleted) {
+    await interaction.reply({
+      embeds: [errorEmbed("Failed to delete plan. It may have already been deleted.")],
+      ephemeral: true,
+    });
+    return;
+  }
+
+  await interaction.reply({
+    embeds: [successEmbed(`${EMOJI.TRASH} Plan **${plan.name}** has been deleted.`)],
     ephemeral: true,
   });
 }
