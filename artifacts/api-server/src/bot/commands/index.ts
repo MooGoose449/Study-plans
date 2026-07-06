@@ -2,7 +2,6 @@ import type { ChatInputCommandInteraction } from "discord.js";
 import * as plan from "./plan.js";
 import * as today from "./today.js";
 import * as read from "./read.js";
-import * as reminder from "./reminder.js";
 import * as streak from "./streak.js";
 import * as stats from "./stats.js";
 import * as leaderboard from "./leaderboard.js";
@@ -20,7 +19,6 @@ export const commands: Command[] = [
   plan,
   today,
   read,
-  reminder,
   streak,
   stats,
   leaderboard,

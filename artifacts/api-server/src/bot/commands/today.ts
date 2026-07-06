@@ -54,7 +54,7 @@ export async function execute(
   if (reminderSettings?.enabled) {
     reminderFooter = `\n${EMOJI.BELL} Reminder set for **${reminderSettings.timeOfDay}** (${reminderSettings.timezone}) on ${formatDaysOfWeek(reminderSettings.daysOfWeek as number[])}`;
   } else {
-    reminderFooter = `\n${EMOJI.BELL_OFF} No reminders set. Use \`/reminder set\` to add one.`;
+    reminderFooter = `\n${EMOJI.BELL_OFF} No reminders set. Use \`/plan edit\` to add one.`;
   }
 
   const embeds = [];

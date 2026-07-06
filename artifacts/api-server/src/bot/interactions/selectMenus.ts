@@ -15,7 +15,9 @@ import {
   getSourceTotalItems,
 } from "../services/planService.js";
 import { markAsRead, markAsUnread } from "../services/readService.js";
-import { markReadSuccessEmbed, planDetailEmbed, errorEmbed, selectSourceEmbed } from "../ui/embeds.js";
+import { getReminderSettings, disableReminders } from "../services/reminderService.js";
+import { cancelReminder } from "../scheduler/index.js";
+import { markReadSuccessEmbed, planDetailEmbed, errorEmbed, selectSourceEmbed, successEmbed } from "../ui/embeds.js";
 import {
   scriptureSelectMenu,
   conferenceSelectMenu,
@@ -61,7 +63,7 @@ export async function handleSelectMenu(
       break;
 
     case "plan_edit_field":
-      await handlePlanEditField(interaction, discordId, Number(params[0]));
+      await handlePlanEditField(interaction, discordId, Number(params[0]), client);
       break;
 
     case "plan_delete_select":
@@ -206,8 +208,72 @@ async function handlePlanEditField(
   interaction: StringSelectMenuInteraction,
   discordId: string,
   planId: number,
+  client: Client,
 ) {
   const field = interaction.values[0]!;
+
+  // ── Reminder actions (per-user, not per-plan) ──────────────────────────
+  if (field === "reminder_set") {
+    const existing = await getReminderSettings(discordId);
+    const modal = new ModalBuilder()
+      .setCustomId("mod:reminder_set")
+      .setTitle(`${EMOJI.BELL} Set Study Reminder`);
+
+    const timeInput = new TextInputBuilder()
+      .setCustomId("time_of_day")
+      .setLabel("Time (HH:MM, 24-hour format)")
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder("08:00")
+      .setValue(existing?.timeOfDay ?? "08:00")
+      .setRequired(true)
+      .setMinLength(5)
+      .setMaxLength(5);
+
+    const timezoneInput = new TextInputBuilder()
+      .setCustomId("timezone")
+      .setLabel("Timezone (e.g. America/Denver)")
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder("America/Denver")
+      .setValue(existing?.timezone ?? "UTC")
+      .setRequired(true);
+
+    const daysInput = new TextInputBuilder()
+      .setCustomId("days_of_week")
+      .setLabel("Days of week (0=Sun to 6=Sat, comma-separated)")
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder("0,1,2,3,4,5,6  (every day)")
+      .setValue((existing?.daysOfWeek as number[] | undefined)?.join(",") ?? "0,1,2,3,4,5,6")
+      .setRequired(true);
+
+    modal.addComponents(
+      new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(timeInput),
+      new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(timezoneInput),
+      new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(daysInput),
+    );
+
+    await interaction.showModal(modal);
+    return;
+  }
+
+  if (field === "reminder_disable") {
+    const existing = await getReminderSettings(discordId);
+    if (!existing || !existing.enabled) {
+      await interaction.update({
+        embeds: [errorEmbed("You don't have any active reminders to disable.")],
+        components: [],
+      });
+      return;
+    }
+    await disableReminders(discordId);
+    cancelReminder(discordId);
+    await interaction.update({
+      embeds: [successEmbed(`${EMOJI.BELL_OFF} Reminders disabled.`)],
+      components: [],
+    });
+    return;
+  }
+
+  // ── Plan field edits ───────────────────────────────────────────────────
   const plan = await getPlan(planId, discordId);
   if (!plan) {
     await interaction.reply({ embeds: [errorEmbed("Plan not found.")], ephemeral: true });
@@ -218,7 +284,11 @@ async function handlePlanEditField(
     const newActive = !plan.isActive;
     await updatePlan(planId, discordId, { isActive: newActive });
     await interaction.update({
-      embeds: [errorEmbed(`Plan is now ${newActive ? "active" : "paused"}.`)],
+      embeds: [
+        successEmbed(
+          `${newActive ? EMOJI.COMPLETE + " Plan **" + plan.name + "** is now active." : EMOJI.INFO + " Plan **" + plan.name + "** is now paused."}`,
+        ),
+      ],
       components: [],
     });
     return;

@@ -15,6 +15,7 @@ import {
   errorEmbed,
   successEmbed,
 } from "../ui/embeds.js";
+import { setupReminderRow } from "../ui/components.js";
 import {
   isValidTime,
   isValidDate,
@@ -119,6 +120,7 @@ async function handlePlanCreate(
 
   await interaction.reply({
     embeds: [planDetailEmbed(plan)],
+    components: [setupReminderRow()],
     ephemeral: true,
   });
 }

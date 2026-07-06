@@ -18,7 +18,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
           "`/plan create`: Start a new study plan (scripture or General Conference)",
           "`/plan list`: See all your plans with progress",
           "`/plan view`: View details for a specific plan",
-          "`/plan edit`: Change a plan's name, pace, goal date, or pause it",
+          "`/plan edit`: Change a plan's name, pace, goal date, pause it, or manage reminders",
           "`/plan delete`: Remove a plan",
         ].join("\n"),
       },
@@ -28,15 +28,6 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
           "`/today`: See what to read today across all your active plans",
           "`/read read`: Mark today's reading complete",
           "`/read unread`: Undo today's reading for a plan",
-        ].join("\n"),
-      },
-      {
-        name: `${EMOJI.BELL} Reminders`,
-        value: [
-          "`/reminder set`: Set up a daily DM reminder",
-          "`/reminder edit`: Change your reminder time, timezone, or days",
-          "`/reminder view`: See your current reminder settings",
-          "`/reminder disable`: Turn off reminders",
         ].join("\n"),
       },
       {

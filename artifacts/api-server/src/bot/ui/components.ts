@@ -105,8 +105,25 @@ export function planEditFieldMenu(planId: number): ActionRowBuilder<MessageActio
       new StringSelectMenuOptionBuilder().setLabel("Units per Day").setValue("units_per_day").setEmoji(EMOJI.CALENDAR),
       new StringSelectMenuOptionBuilder().setLabel("Goal Date").setValue("goal_date").setEmoji(EMOJI.CALENDAR),
       new StringSelectMenuOptionBuilder().setLabel("Pause / Unpause").setValue("toggle_active").setEmoji(EMOJI.INFO),
+      new StringSelectMenuOptionBuilder().setLabel("Set / Edit Reminder").setValue("reminder_set").setEmoji(EMOJI.BELL),
+      new StringSelectMenuOptionBuilder().setLabel("Disable Reminder").setValue("reminder_disable").setEmoji(EMOJI.BELL_OFF),
     );
   return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(menu);
+}
+
+/** Button row shown after plan creation offering to set up a reminder. */
+export function setupReminderRow(): ActionRowBuilder<MessageActionRowComponentBuilder> {
+  return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId("btn:setup_reminder")
+      .setLabel("Set up Daily Reminder")
+      .setStyle(ButtonStyle.Primary)
+      .setEmoji(EMOJI.BELL),
+    new ButtonBuilder()
+      .setCustomId("btn:skip_reminder")
+      .setLabel("Skip for now")
+      .setStyle(ButtonStyle.Secondary),
+  );
 }
 
 // ── Mark as Read buttons ─────────────────────────────────────────────────────
