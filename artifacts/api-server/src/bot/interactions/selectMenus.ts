@@ -14,7 +14,7 @@ import {
   updatePlan,
   getSourceTotalItems,
 } from "../services/planService.js";
-import { markAsRead } from "../services/readService.js";
+import { markAsRead, markAsUnread } from "../services/readService.js";
 import { markReadSuccessEmbed, planDetailEmbed, errorEmbed, selectSourceEmbed } from "../ui/embeds.js";
 import {
   scriptureSelectMenu,
@@ -69,7 +69,7 @@ export async function handleSelectMenu(
       break;
 
     case "read_plan_select":
-      await handleReadPlanSelect(interaction, discordId);
+      await handleReadPlanSelect(interaction, discordId, params[0]);
       break;
 
     default:
@@ -273,21 +273,67 @@ async function handlePlanDeleteSelect(
     return;
   }
 
-  const { confirmRow } = await import("../ui/components.js");
-  await interaction.update({
-    content: `Are you sure you want to delete **${plan.name}**? This cannot be undone.`,
-    embeds: [],
-    components: [confirmRow(`btn:plan_delete_confirm:${plan.id}`, "btn:cancel")],
-  });
+  // Show confirmation modal asking user to type plan name
+  const modal = new ModalBuilder()
+    .setCustomId(`mod:plan_delete_confirm:${planId}`)
+    .setTitle(`${EMOJI.TRASH} Confirm Deletion`);
+
+  const input = new TextInputBuilder()
+    .setCustomId("plan_name_confirm")
+    .setLabel(`Type the plan name to confirm deletion`)
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder(plan.name)
+    .setRequired(true)
+    .setMaxLength(80);
+
+  modal.addComponents(
+    new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(input),
+  );
+
+  await interaction.showModal(modal);
 }
 
 async function handleReadPlanSelect(
   interaction: StringSelectMenuInteraction,
   discordId: string,
+  action?: string,
 ) {
   await interaction.deferUpdate();
 
   const planId = Number(interaction.values[0]);
+  const readAction = action || "read";
+
+  if (readAction === "unread") {
+    const result = await markAsUnread(planId, discordId);
+
+    if (!result.success) {
+      const messages: Record<string, string> = {
+        not_read: "This plan hasn't been marked as read today.",
+        plan_not_found: "Plan not found.",
+      };
+      await interaction.followUp({
+        embeds: [errorEmbed(messages[result.reason] ?? "Something went wrong.")],
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const plan = await getPlan(planId, discordId);
+    if (!plan) return;
+
+    await interaction.editReply({
+      content: "",
+      embeds: [
+        errorEmbed(
+          `${EMOJI.UNDO} Marked as unread. Your progress has been restored to **${plan.currentPosition}** units.`,
+        ),
+      ],
+      components: [],
+    });
+    return;
+  }
+
+  // Handle read action
   const result = await markAsRead(planId, discordId);
 
   if (!result.success) {
