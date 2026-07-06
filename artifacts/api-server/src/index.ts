@@ -1,28 +1,50 @@
 import app from "./app";
 import { startBot } from "./bot/index";
 import { logger } from "./lib/logger";
+import { pool } from "@workspace/db";
 
 const PING_INTERVAL_MS = 14 * 60 * 1000; // 14 minutes
 
-function startKeepAlive(baseUrl: string): void {
-  const url = `${baseUrl}/api/healthz`;
+/** Ping our own health endpoint to prevent Render free-tier spin-down. */
+function startHttpKeepAlive(port: number): void {
+  // Prefer the public Render URL so the ping goes through the load balancer.
+  // Fall back to localhost so it always works even without that var set.
+  const raw =
+    process.env["RENDER_EXTERNAL_URL"] ??
+    process.env["APP_URL"] ??
+    `http://localhost:${port}`;
+  const url = `${raw.replace(/\/$/, "")}/api/healthz`;
+
   setInterval(async () => {
     try {
       const res = await fetch(url);
-      logger.debug({ status: res.status }, "Keep-alive ping");
+      logger.debug({ status: res.status }, "Keep-alive HTTP ping");
     } catch (err) {
-      logger.warn({ err }, "Keep-alive ping failed");
+      logger.warn({ err }, "Keep-alive HTTP ping failed");
     }
   }, PING_INTERVAL_MS);
-  logger.info({ url, intervalMinutes: 14 }, "Keep-alive pinger started");
+
+  logger.info({ url, intervalMinutes: 14 }, "HTTP keep-alive started");
+}
+
+/** Run a cheap query every 14 minutes to keep the Neon connection warm. */
+function startDbKeepAlive(): void {
+  setInterval(async () => {
+    try {
+      await pool.query("SELECT 1");
+      logger.debug("Keep-alive DB ping");
+    } catch (err) {
+      logger.warn({ err }, "Keep-alive DB ping failed");
+    }
+  }, PING_INTERVAL_MS);
+
+  logger.info({ intervalMinutes: 14 }, "DB keep-alive started");
 }
 
 const rawPort = process.env["PORT"];
 
 if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
+  throw new Error("PORT environment variable is required but was not provided.");
 }
 
 const port = Number(rawPort);
@@ -39,12 +61,8 @@ app.listen(port, (err) => {
   }
   logger.info({ port }, "Server listening");
 
-  // Keep-alive ping — prevents Render free-tier spin-down.
-  // RENDER_EXTERNAL_URL is set automatically by Render; APP_URL is a manual override.
-  const baseUrl = process.env["RENDER_EXTERNAL_URL"] ?? process.env["APP_URL"];
-  if (baseUrl) {
-    startKeepAlive(baseUrl.replace(/\/$/, ""));
-  }
+  startHttpKeepAlive(port);
+  startDbKeepAlive();
 });
 
 // Start Discord bot
@@ -54,7 +72,6 @@ startBot()
   })
   .catch((err) => {
     logger.error({ err }, "Failed to start Discord bot — server continues running");
-    // Don't exit: the HTTP server (health check for Render) should stay up
   });
 
 // Graceful shutdown
