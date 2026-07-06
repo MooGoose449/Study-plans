@@ -58,7 +58,7 @@ export const data = new SlashCommandBuilder()
   .addSubcommand((sub) =>
     sub
       .setName("delete")
-      .setDescription("Delete a study plan — choose from a list and confirm by typing the plan name"),
+      .setDescription("Delete a study plan. Choose from a list and confirm by typing the plan name."),
   );
 
 export async function execute(

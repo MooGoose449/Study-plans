@@ -25,18 +25,6 @@ export const data = new SlashCommandBuilder()
           .setName("plan")
           .setDescription("Plan ID (optional if you only have one active plan)")
           .setRequired(false),
-      )
-      .addStringOption((o) =>
-        o
-          .setName("date")
-          .setDescription("Read up to this date (YYYY-MM-DD). Cannot be used with 'amount'.")
-          .setRequired(false),
-      )
-      .addIntegerOption((o) =>
-        o
-          .setName("amount")
-          .setDescription("Units to mark as read today. Cannot be used with 'date'.")
-          .setRequired(false),
       ),
   )
   .addSubcommand((sub) =>
@@ -67,17 +55,7 @@ export async function execute(
   }
 
   // subcommand === "read"
-  const dateOption = interaction.options.getString("date");
-  const amountOption = interaction.options.getInteger("amount");
-
-  if (dateOption && amountOption !== null) {
-    await interaction.editReply({
-      embeds: [errorEmbed("Please provide either a **date** or an **amount** — not both.")],
-    });
-    return;
-  }
-
-  await handleRead(interaction, discordId, dateOption, amountOption);
+  await handleRead(interaction, discordId);
 }
 
 // ── Read ──────────────────────────────────────────────────────────────────
@@ -85,8 +63,6 @@ export async function execute(
 async function handleRead(
   interaction: ChatInputCommandInteraction,
   discordId: string,
-  dateOption: string | null,
-  amountOption: number | null,
 ) {
   const planId = interaction.options.getInteger("plan");
   const activePlans = await getActivePlans(discordId);
@@ -99,12 +75,12 @@ async function handleRead(
   }
 
   if (planId !== null) {
-    await doMarkRead(interaction, discordId, planId, dateOption, amountOption);
+    await doMarkRead(interaction, discordId, planId);
     return;
   }
 
   if (activePlans.length === 1) {
-    await doMarkRead(interaction, discordId, activePlans[0]!.id, dateOption, amountOption);
+    await doMarkRead(interaction, discordId, activePlans[0]!.id);
     return;
   }
 
@@ -152,8 +128,6 @@ export async function doMarkRead(
   interaction: ChatInputCommandInteraction | { editReply: Function },
   discordId: string,
   planId: number,
-  dateOption: string | null,
-  amountOption: number | null,
 ): Promise<void> {
   const result = await markAsRead(planId, discordId);
 

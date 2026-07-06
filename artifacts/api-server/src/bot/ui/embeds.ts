@@ -147,8 +147,8 @@ export function markReadSuccessEmbed(
     .setColor(isComplete ? COLORS.GOLD : COLORS.SUCCESS)
     .setTitle(
       isComplete
-        ? `${EMOJI.TROPHY} Plan Complete! — ${plan.name}`
-        : `${EMOJI.COMPLETE} Reading Marked Complete — ${plan.name}`,
+        ? `${EMOJI.TROPHY} Plan Complete: ${plan.name}`
+        : `${EMOJI.COMPLETE} Reading Marked Complete: ${plan.name}`,
     )
     .addFields(
       { name: `${EMOJI.STREAK} Current Streak`, value: `${newStreak} day${newStreak !== 1 ? "s" : ""}`, inline: true },
@@ -169,7 +169,7 @@ export function statsEmbed(stats: Statistics, username: string, overallPct: numb
 
   return new EmbedBuilder()
     .setColor(COLORS.PRIMARY)
-    .setTitle(`${EMOJI.CHART} Study Statistics — ${username}`)
+    .setTitle(`${EMOJI.CHART} Study Statistics: ${username}`)
     .addFields(
       { name: `${EMOJI.STREAK} Current Streak`,  value: `${stats.currentStreak} day${stats.currentStreak !== 1 ? "s" : ""}`, inline: true },
       { name: `${EMOJI.TROPHY} Longest Streak`,  value: `${stats.longestStreak} day${stats.longestStreak !== 1 ? "s" : ""}`, inline: true },
@@ -193,7 +193,7 @@ export function streakEmbed(stats: Statistics, username: string): EmbedBuilder {
 
   return new EmbedBuilder()
     .setColor(stats.currentStreak > 0 ? COLORS.WARNING : COLORS.NEUTRAL)
-    .setTitle(`${EMOJI.STREAK} Streak — ${username}`)
+    .setTitle(`${EMOJI.STREAK} Streak: ${username}`)
     .addFields(
       { name: "Current Streak", value: `${fire} **${stats.currentStreak}** day${stats.currentStreak !== 1 ? "s" : ""}`, inline: false },
       { name: "Longest Streak", value: `${EMOJI.TROPHY} **${stats.longestStreak}** day${stats.longestStreak !== 1 ? "s" : ""}`, inline: false },
@@ -221,12 +221,12 @@ export function leaderboardEmbed(
   const lines = entries.map((e) => {
     const medal = medals[e.rank] ?? `**${ordinal(e.rank)}**`;
     const days = `${e.value} day${e.value !== 1 ? "s" : ""}`;
-    return `${medal} **${e.username}** — ${EMOJI.STREAK} ${days}`;
+    return `${medal} **${e.username}** ${EMOJI.STREAK} ${days}`;
   });
 
   return new EmbedBuilder()
     .setColor(COLORS.GOLD)
-    .setTitle(`${EMOJI.TROPHY} ${scopeEmoji} ${scopeLabel} Leaderboard — ${typeLabel}`)
+    .setTitle(`${EMOJI.TROPHY} ${scopeEmoji} ${scopeLabel} Leaderboard: ${typeLabel}`)
     .setDescription(lines.join("\n") || "No entries yet. Be the first!")
     .setFooter({ text: `Top ${entries.length} • ${EMOJI.STREAK} = days` });
 }
@@ -263,7 +263,7 @@ export function reminderDmEmbed(
     .setColor(COLORS.PRIMARY)
     .setTitle(`${EMOJI.BELL} Time to Study!`)
     .setDescription(
-      assignmentLines.join("\n\n") || "All plans complete — great work!",
+      assignmentLines.join("\n\n") || "All plans complete! Great work!",
     )
     .addFields(
       { name: `${EMOJI.STREAK} Current Streak`, value: `${streak} day${streak !== 1 ? "s" : ""}`, inline: true },
