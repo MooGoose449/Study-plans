@@ -15,28 +15,42 @@ function startHttpKeepAlive(port: number): void {
     `http://localhost:${port}`;
   const url = `${raw.replace(/\/$/, "")}/api/healthz`;
 
-  setInterval(async () => {
+  // Helper function to send ping
+  const sendPing = async () => {
     try {
       const res = await fetch(url);
       logger.debug({ status: res.status }, "Keep-alive HTTP ping");
     } catch (err) {
       logger.warn({ err }, "Keep-alive HTTP ping failed");
     }
-  }, PING_INTERVAL_MS);
+  };
+
+  // Send first ping immediately
+  void sendPing();
+
+  // Then set up interval for subsequent pings
+  setInterval(sendPing, PING_INTERVAL_MS);
 
   logger.info({ url, intervalMinutes: 5 }, "HTTP keep-alive started");
 }
 
 /** Run a cheap query every 5 minutes to keep the Neon connection warm. */
 function startDbKeepAlive(): void {
-  setInterval(async () => {
+  // Helper function to send ping
+  const sendPing = async () => {
     try {
       await pool.query("SELECT 1");
       logger.debug("Keep-alive DB ping");
     } catch (err) {
       logger.warn({ err }, "Keep-alive DB ping failed");
     }
-  }, PING_INTERVAL_MS);
+  };
+
+  // Send first ping immediately
+  void sendPing();
+
+  // Then set up interval for subsequent pings
+  setInterval(sendPing, PING_INTERVAL_MS);
 
   logger.info({ intervalMinutes: 5 }, "DB keep-alive started");
 }
