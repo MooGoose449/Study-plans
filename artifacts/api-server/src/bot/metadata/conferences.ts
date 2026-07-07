@@ -9,13 +9,22 @@
 //    the talk data is only needed for "today's reading" display.
 //    If a plan references a removed conference, the display
 //    will fall back to "Talk #N of M".
+//
+// URL SLUG NOTES:
+// Each talk's URL slug is computed as {session_num}{pos_in_session}{last_name}.
+// Mark skipUrl: true for talks that have no individual URL (e.g. brief opening
+// remarks that weren't published as a standalone talk on the Church website).
 // ============================================================
+
+const CONF_BASE = "https://www.churchofjesuschrist.org/study/general-conference";
 
 export type ConferenceTalk = {
   order: number;        // 1-based position within the conference
   title: string;
   speaker: string;
   session?: string;     // e.g. "Saturday Morning", "Priesthood Session"
+  /** True if this talk has no individual Church website URL (opening remarks, etc.) */
+  skipUrl?: boolean;
 };
 
 export type Conference = {
@@ -83,7 +92,8 @@ export const CONFERENCES: Conference[] = [
     shortName: "October 2025",
     talks: [
       // Saturday Morning
-      { order: 1,  title: "Introduction",                                                      speaker: "President Dallin H. Oaks",              session: "Saturday Morning" },
+      // order 1 is brief opening remarks — no standalone URL on the Church website
+      { order: 1,  title: "Introduction",                                                      speaker: "President Dallin H. Oaks",              session: "Saturday Morning", skipUrl: true },
       { order: 2,  title: "Sustaining of General Authorities, Area Seventies, and General Officers", speaker: "Elder Henry B. Eyring",            session: "Saturday Morning" },
       { order: 3,  title: "Blessed Are the Peacemakers",                                       speaker: "Elder Gary E. Stevenson",               session: "Saturday Morning" },
       { order: 4,  title: "Tune Your Heart to Jesus Christ: The Sacred Gift of Primary Music", speaker: "Sister Tracy Y. Browning",              session: "Saturday Morning" },
@@ -171,4 +181,71 @@ export function getTalkDisplay(conferenceId: string, position: number): string {
   const talk = conf.talks[position];
   if (!talk) return `Talk #${position + 1}`;
   return `"${talk.title}" by ${talk.speaker}${talk.session ? ` (${talk.session})` : ""}`;
+}
+
+/**
+ * Get the Church website URL for the first linkable talk in a range (0-based start, count).
+ * Scans forward from startPos until it finds a talk without skipUrl.
+ * Returns null if no talk in the range has a URL or the conference is unknown.
+ */
+export function getConferenceFirstLinkableUrl(
+  conferenceId: string,
+  startPos: number,
+  count: number,
+): string | null {
+  const conf = getConference(conferenceId);
+  if (!conf) return null;
+  const slice = conf.talks.slice(startPos, startPos + count);
+  for (let i = 0; i < slice.length; i++) {
+    const url = getConferenceTalkUrl(conferenceId, startPos + i);
+    if (url) return url;
+  }
+  return null;
+}
+
+/**
+ * Get the Church website URL for a single talk at the given position (0-based).
+ * Returns null if the talk has no URL or the conference is unknown.
+ */
+export function getConferenceTalkUrl(conferenceId: string, position: number): string | null {
+  const conf = getConference(conferenceId);
+  if (!conf) return null;
+
+  const talk = conf.talks[position];
+  if (!talk || !talk.session || talk.skipUrl) return null;
+
+  // Parse conference ID: e.g. "april_2026" → year="2026", month="04"
+  const [monthName, yearStr] = conferenceId.split("_");
+  const monthMap: Record<string, string> = { april: "04", october: "10" };
+  const month = monthMap[monthName ?? ""];
+  if (!month || !yearStr) return null;
+
+  // Build ordered list of unique sessions in order of first appearance
+  const sessions: string[] = [];
+  for (const t of conf.talks) {
+    if (t.session && !sessions.includes(t.session)) {
+      sessions.push(t.session);
+    }
+  }
+
+  const sessionNum = sessions.indexOf(talk.session) + 1;
+  if (sessionNum === 0) return null;
+
+  // Count position within this session, skipping skipUrl talks
+  const talksInSession = conf.talks.filter(
+    (t) => t.session === talk.session && !t.skipUrl,
+  );
+  const posInSession = talksInSession.findIndex((t) => t.order === talk.order) + 1;
+  if (posInSession === 0) return null;
+
+  // Extract last name: strip titles, take last word, remove diacritics, lowercase
+  const lastName = talk.speaker
+    .trim()
+    .split(/\s+/)
+    .at(-1)!
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  return `${CONF_BASE}/${yearStr}/${month}/${sessionNum}${posInSession}${lastName}?lang=eng`;
 }

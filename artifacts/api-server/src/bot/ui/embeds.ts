@@ -6,6 +6,7 @@ import type { StudyPlan, Statistics, ReminderSettings } from "@workspace/db";
 import { EMOJI, buildProgressBar, getSourceEmoji } from "./emojis.js";
 import {
   getTodaysAssignment,
+  getTodaysAssignmentLinked,
   getPlanSourceLabel,
   estimateCompletionDate,
 } from "../services/planService.js";
@@ -112,6 +113,8 @@ export function todayPlanEmbed(
   const emoji = getSourceEmoji(plan.sourceType, plan.sourceId);
   const source = getPlanSourceLabel(plan);
 
+  const assignmentLinked = alreadyRead ? assignment : getTodaysAssignmentLinked(plan);
+
   const embed = new EmbedBuilder()
     .setColor(alreadyRead ? COLORS.SUCCESS : COLORS.PRIMARY)
     .setTitle(`${emoji} ${plan.name}`)
@@ -119,7 +122,7 @@ export function todayPlanEmbed(
       { name: "Source", value: source, inline: true },
       {
         name: alreadyRead ? `${EMOJI.COMPLETE} Today's Reading (Done)` : `${EMOJI.BOOK} Today's Reading`,
-        value: `\`\`\`${assignment}\`\`\``,
+        value: alreadyRead ? `\`\`\`${assignment}\`\`\`` : assignmentLinked,
         inline: false,
       },
       { name: "Progress", value: `${bar} ${pct}%`, inline: true },
@@ -256,7 +259,7 @@ export function reminderDmEmbed(
     .filter((p) => !p.isComplete)
     .map((p) => {
       const emoji = getSourceEmoji(p.sourceType, p.sourceId);
-      return `${emoji} **${p.name}**\n${getTodaysAssignment(p)}`;
+      return `${emoji} **${p.name}**\n${getTodaysAssignmentLinked(p)}`;
     });
 
   return new EmbedBuilder()

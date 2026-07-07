@@ -16,6 +16,8 @@ import {
   CONFERENCES,
   getConferenceTotalItems,
   getConferenceRangeDisplay,
+  getConferenceTalkUrl,
+  getConferenceFirstLinkableUrl,
   getTalkDisplay,
 } from "../metadata/conferences.js";
 
@@ -164,6 +166,41 @@ export function getSourceTotalItems(
     return getScriptureTotalItems(sourceId);
   } else {
     return getConferenceTotalItems(sourceId);
+  }
+}
+
+/**
+ * Like getTodaysAssignment but with Discord markdown hyperlinks embedded.
+ * Single items → [Reference](url). Multiple items → [range text](first url).
+ * Falls back to plain text if no URL is available.
+ */
+export function getTodaysAssignmentLinked(plan: StudyPlan): string {
+  const { sourceType, sourceId, currentPosition, totalItems, unitsPerDay } = plan;
+
+  if (currentPosition >= totalItems) return "Complete!";
+
+  const remaining = totalItems - currentPosition;
+  const count = Math.min(unitsPerDay, remaining);
+
+  if (sourceType === "scripture") {
+    const items = getScriptureItems(sourceId);
+    const slice = items.slice(currentPosition, currentPosition + count);
+    if (slice.length === 0) return "Complete!";
+
+    const display = getScriptureRangeDisplay(sourceId, currentPosition, count);
+    const firstUrl = slice[0]?.url ?? null;
+    return firstUrl ? `[${display}](${firstUrl})` : display;
+  } else {
+    const display = getConferenceRangeDisplay(sourceId, currentPosition, count);
+    const firstUrl = getConferenceFirstLinkableUrl(sourceId, currentPosition, count);
+    if (!firstUrl) return display;
+    // display may be "Title"\nSpeaker — only hyperlink the title line so Discord
+    // renders the link correctly (newlines inside [text](url) break rendering).
+    const newlineIdx = display.indexOf("\n");
+    if (newlineIdx === -1) return `[${display}](${firstUrl})`;
+    const titleLine = display.slice(0, newlineIdx);
+    const speakerLine = display.slice(newlineIdx); // includes the leading \n
+    return `[${titleLine}](${firstUrl})${speakerLine}`;
   }
 }
 
