@@ -81,7 +81,7 @@ export function planSelectMenu(
 ): ActionRowBuilder<MessageActionRowComponentBuilder> {
   const options = plans.map((p) =>
     new StringSelectMenuOptionBuilder()
-      .setLabel(`${p.name} (ID: ${p.id})`)
+      .setLabel(p.name)
       .setValue(String(p.id))
       .setDescription(p.isComplete ? "Completed" : `${Math.round((p.currentPosition / p.totalItems) * 100)}% complete`),
   );

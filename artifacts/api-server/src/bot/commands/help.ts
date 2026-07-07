@@ -26,8 +26,8 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         name: "Reading",
         value: [
           "`/today`: See what to read today across all your active plans",
-          "`/read read`: Mark today's reading complete",
-          "`/read unread`: Undo today's reading for a plan",
+          "`/read`: Mark today's reading complete",
+          "`/unread`: Undo today's reading for a plan",
         ].join("\n"),
       },
       {
