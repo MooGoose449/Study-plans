@@ -3,7 +3,6 @@ import { onReady } from "./events/ready.js";
 import { onInteractionCreate } from "./events/interactionCreate.js";
 import { onGuildMemberRemove } from "./events/guildMemberRemove.js";
 import { logger } from "../lib/logger.js";
-import { createClient as createRedisClient } from "redis";
 import { initCache } from "./utils/cache.js";
 
 let client: Client | null = null;
@@ -19,6 +18,13 @@ export async function startBot(): Promise<Client> {
   const redisUrl = process.env.REDIS_URL;
   if (redisUrl) {
     try {
+      // Dynamically require 'redis' at runtime so the bundler doesn't try to
+      // resolve it during build. Redis is optional; if it's not available the
+      // app will fall back to an in-memory cache.
+      // eslint-disable-next-line @typescript-eslint/no-implied-eval
+      const req = new Function("return require")() as any;
+      const redisModule = req("redis");
+      const createRedisClient = redisModule.createClient;
       const redis = createRedisClient({ url: redisUrl });
       await redis.connect();
       initCache(redis as any);
@@ -48,7 +54,7 @@ export async function startBot(): Promise<Client> {
     partials: [Partials.Channel, Partials.Message],
   });
 
-  // ── Events ────────────────────────────────────────────────────────────────
+  // ── Events ───────────────────────────────────────────────────────────[...]
 
   client.once("clientReady", async (c) => {
     await onReady(c).catch((err) =>
@@ -76,7 +82,7 @@ export async function startBot(): Promise<Client> {
     logger.warn({ message }, "Discord client warning");
   });
 
-  // ── Login ─────────────────────────────────────────────────────────────────
+  // ── Login ────────────────────────────────────────────────────────────
 
   await client.login(token);
   return client;
