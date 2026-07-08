@@ -17,6 +17,8 @@ A Discord bot that helps members of The Church of Jesus Christ of Latter-day Sai
 
 ## Commands
 
+> Note: If you change slash command options you must re-register the commands with Discord. Run `artifacts/api-server/src/bot/deploy-commands.ts` (or your deploy script) after pulling changes.
+
 | Command | Description |
 |---|---|
 | `/help` | Show all commands and tips |
@@ -33,4 +35,4 @@ A Discord bot that helps members of The Church of Jesus Christ of Latter-day Sai
 | `/reminder disable` | Turn off reminders |
 | `/streak [user]` | View current and longest streak |
 | `/stats [user]` | Full reading statistics |
-| `/leaderboard` | Top 10 leaderboard (streak type + scope) |
+| `/leaderboard type scope` | Top 10 leaderboard by streak type and scope (type: `current` or `longest`, scope: `server` or `global`) |
