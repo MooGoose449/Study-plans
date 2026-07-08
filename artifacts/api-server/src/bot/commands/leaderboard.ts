@@ -8,6 +8,13 @@ import {
   getServerLeaderboard,
 } from "../services/statsService.js";
 import { leaderboardEmbed, errorEmbed } from "../ui/embeds.js";
+import { EMOJI } from "../ui/emojis.js";
+import { fetchWithTimeout } from "../utils/fetchWithTimeout.js";
+import { cacheGet, cacheSet } from "../utils/cache.js";
+import { logger } from "../../lib/logger.js";
+
+const MEMBER_FETCH_TIMEOUT_MS = Number(process.env.MEMBER_FETCH_TIMEOUT_MS ?? 3000);
+const LEADERBOARD_CACHE_TTL = Number(process.env.LEADERBOARD_CACHE_TTL ?? 60);
 
 export const data = new SlashCommandBuilder()
   .setName("leaderboard")
@@ -48,40 +55,67 @@ export async function execute(
   let entries;
   let fallbackToGlobal = false;
 
-  if (scope === "server" && interaction.guild) {
-    // Try a fast, cached path first and otherwise fetch with a short timeout so the command doesn't hang.
-    let memberIds: string[] = [];
-    try {
-      const cache = interaction.guild.members.cache;
-      if (cache && cache.size > 0) {
-        memberIds = cache.filter((m) => !m.user.bot).map((m) => m.user.id);
+  // Try cache first for performance
+  try {
+    const cacheKey = scope === "server" && interaction.guild
+      ? `leaderboard:server:${type}:${interaction.guild.id}`
+      : `leaderboard:global:${type}`;
+
+    const cached = await cacheGet(cacheKey);
+    if (cached) {
+      try {
+        entries = JSON.parse(cached) as unknown as typeof entries;
+      } catch (err) {
+        // parsing failed; ignore cache
+        entries = undefined;
+      }
+    }
+
+    if (!entries) {
+      if (scope === "server" && interaction.guild) {
+        // Try to use cached members list first, otherwise fetch with timeout
+        let memberIds: string[] = [];
+        try {
+          const cachedMembers = interaction.guild.members.cache;
+          if (cachedMembers && cachedMembers.size > 0) {
+            memberIds = cachedMembers.filter((m) => !m.user.bot).map((m) => m.user.id);
+          } else {
+            // fetch with timeout
+            const members = await fetchWithTimeout(interaction.guild.members.fetch(), MEMBER_FETCH_TIMEOUT_MS);
+            memberIds = members.filter((m) => !m.user.bot).map((m) => m.user.id);
+          }
+
+          if (memberIds.length === 0) {
+            // No members found — fall back to global
+            fallbackToGlobal = true;
+            entries = await getGlobalLeaderboard(type);
+          } else {
+            entries = await getServerLeaderboard(type, memberIds);
+          }
+        } catch (err) {
+          // Fetch failed (timeout, permissions, or other) — fall back to global
+          const reason = (err instanceof Error && err.message) ? err.message : String(err);
+          logger.warn({ guildId: interaction.guild.id, userId: discordId, reason }, "Falling back to global leaderboard");
+          fallbackToGlobal = true;
+          entries = await getGlobalLeaderboard(type);
+        }
       } else {
-        // Fetch but race against a timeout to avoid long waits on large guilds or network issues.
-        const fetchPromise = interaction.guild.members.fetch();
-        const timeoutMs = 3000;
-        const timeoutPromise = new Promise<never>((_, rej) =>
-          setTimeout(() => rej(new Error("member fetch timeout")), timeoutMs),
-        );
-        // If fetch resolves first, use it; otherwise the timeout rejects and we fall back.
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const members = (await Promise.race([fetchPromise, timeoutPromise])) as any;
-        memberIds = members.filter((m: any) => !m.user.bot).map((m: any) => m.user.id);
+        entries = await getGlobalLeaderboard(type);
       }
 
-      // If there are no member IDs after the attempted fetch, fall back
-      if (memberIds.length === 0) {
-        fallbackToGlobal = true;
-        entries = await getGlobalLeaderboard(type);
-      } else {
-        entries = await getServerLeaderboard(type, memberIds);
+      // Cache the computed entries
+      try {
+        await cacheSet(cacheKey, JSON.stringify(entries ?? []), LEADERBOARD_CACHE_TTL);
+      } catch (err) {
+        // caching should not block the response
+        logger.debug({ err }, "Failed to set leaderboard cache");
       }
-    } catch (err) {
-      // On any failure (permissions, intent disabled, timeout), fall back to global leaderboard
-      fallbackToGlobal = true;
-      entries = await getGlobalLeaderboard(type);
     }
-  } else {
+  } catch (err) {
+    // Top-level protection — fall back to global leaderboard
+    logger.error({ err, userId: discordId }, "Error computing leaderboard; falling back to global");
     entries = await getGlobalLeaderboard(type);
+    fallbackToGlobal = true;
   }
 
   if (!entries || entries.length === 0) {
@@ -103,7 +137,7 @@ export async function execute(
     embeds: [leaderboardEmbed(entries, type, scope === "server" && !fallbackToGlobal ? "server" : "global")],
   });
 
-  // If we had to fall back to global due to member fetch failure, notify the user in a follow-up (plain text)
+  // If we had to fall back to global due to member fetch failure, notify the user in a follow-up
   if (fallbackToGlobal && scope === "server") {
     await interaction.followUp({
       content:
