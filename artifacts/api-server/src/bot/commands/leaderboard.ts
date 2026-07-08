@@ -8,7 +8,6 @@ import {
   getServerLeaderboard,
 } from "../services/statsService.js";
 import { leaderboardEmbed, errorEmbed } from "../ui/embeds.js";
-import { EMOJI } from "../ui/emojis.js";
 
 export const data = new SlashCommandBuilder()
   .setName("leaderboard")
@@ -50,17 +49,34 @@ export async function execute(
   let fallbackToGlobal = false;
 
   if (scope === "server" && interaction.guild) {
-    // Fetch member IDs currently in the server
+    // Try a fast, cached path first and otherwise fetch with a short timeout so the command doesn't hang.
     let memberIds: string[] = [];
     try {
-      const members = await interaction.guild.members.fetch();
-      memberIds = members
-        .filter((m) => !m.user.bot)
-        .map((m) => m.user.id);
+      const cache = interaction.guild.members.cache;
+      if (cache && cache.size > 0) {
+        memberIds = cache.filter((m) => !m.user.bot).map((m) => m.user.id);
+      } else {
+        // Fetch but race against a timeout to avoid long waits on large guilds or network issues.
+        const fetchPromise = interaction.guild.members.fetch();
+        const timeoutMs = 3000;
+        const timeoutPromise = new Promise<never>((_, rej) =>
+          setTimeout(() => rej(new Error("member fetch timeout")), timeoutMs),
+        );
+        // If fetch resolves first, use it; otherwise the timeout rejects and we fall back.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const members = (await Promise.race([fetchPromise, timeoutPromise])) as any;
+        memberIds = members.filter((m: any) => !m.user.bot).map((m: any) => m.user.id);
+      }
 
-      entries = await getServerLeaderboard(type, memberIds);
+      // If there are no member IDs after the attempted fetch, fall back
+      if (memberIds.length === 0) {
+        fallbackToGlobal = true;
+        entries = await getGlobalLeaderboard(type);
+      } else {
+        entries = await getServerLeaderboard(type, memberIds);
+      }
     } catch (err) {
-      // If we can't fetch members (missing intent, permission, or rate limited), fall back to global
+      // On any failure (permissions, intent disabled, timeout), fall back to global leaderboard
       fallbackToGlobal = true;
       entries = await getGlobalLeaderboard(type);
     }
@@ -87,14 +103,11 @@ export async function execute(
     embeds: [leaderboardEmbed(entries, type, scope === "server" && !fallbackToGlobal ? "server" : "global")],
   });
 
-  // If we had to fall back to global due to member fetch failure, notify the user in a follow-up
-  if (fallbackToGlobal) {
+  // If we had to fall back to global due to member fetch failure, notify the user in a follow-up (plain text)
+  if (fallbackToGlobal && scope === "server") {
     await interaction.followUp({
-      embeds: [
-        errorEmbed(
-          "Unable to fetch server members. Make sure the bot has the **Server Members Intent** enabled in the Discord Developer Portal. Showing global leaderboard instead.",
-        ),
-      ],
+      content:
+        "Unable to fetch server members (permissions or intent may be disabled). Showing global leaderboard instead.",
       ephemeral: true,
     });
   }
