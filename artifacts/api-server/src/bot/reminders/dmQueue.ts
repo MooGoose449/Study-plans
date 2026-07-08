@@ -19,6 +19,11 @@ let queue: ReminderJob[] = [];
 let intervalId: NodeJS.Timeout | null = null;
 let rate = DEFAULT_RATE;
 
+// Metrics
+let processedCount = 0;
+let failedCount = 0;
+let backoffCount = 0;
+
 export function initDmQueue(client: Client, opts?: { ratePerSec?: number }) {
   clientRef = client;
   rate = opts?.ratePerSec ?? DEFAULT_RATE;
@@ -32,7 +37,7 @@ function startWorker() {
   logger.info({ rate }, "DM queue started");
 }
 
-function stopWorker() {
+export function stopWorker() {
   if (intervalId) {
     clearInterval(intervalId);
     intervalId = null;
@@ -51,15 +56,21 @@ async function processTick() {
   let index = queue.findIndex((j) => !j.nextRunAt || (j.nextRunAt && j.nextRunAt <= now));
   if (index === -1) return;
   const job = queue.splice(index, 1)[0];
-  await processJob(job).catch((err) => {
-    logger.warn({ err, discordId: job.discordId, attempts: job.attempts }, "Reminder job failed");
-    // exponential backoff
-    job.attempts = Math.min((job.attempts || 0) + 1, 5);
-    const backoff = Math.pow(2, job.attempts) * 1000;
-    const jitter = Math.floor(Math.random() * JITTER_MS) - JITTER_MS / 2;
-    job.nextRunAt = Date.now() + backoff + jitter;
-    queue.push(job);
-  });
+  await processJob(job)
+    .then(() => {
+      processedCount++;
+    })
+    .catch((err) => {
+      failedCount++;
+      backoffCount++;
+      logger.warn({ err, discordId: job.discordId, attempts: job.attempts }, "Reminder job failed");
+      // exponential backoff
+      job.attempts = Math.min((job.attempts || 0) + 1, 5);
+      const backoff = Math.pow(2, job.attempts) * 1000;
+      const jitter = Math.floor(Math.random() * JITTER_MS) - JITTER_MS / 2;
+      job.nextRunAt = Date.now() + backoff + jitter;
+      queue.push(job);
+    });
 }
 
 async function processJob(job: ReminderJob): Promise<void> {
@@ -86,4 +97,13 @@ async function processJob(job: ReminderJob): Promise<void> {
     logger.warn({ discordId, err }, "Failed to send queued reminder DM");
     throw err;
   }
+}
+
+export function getQueueStats() {
+  return {
+    queued: queue.length,
+    processed: processedCount,
+    failed: failedCount,
+    backoff: backoffCount,
+  };
 }
