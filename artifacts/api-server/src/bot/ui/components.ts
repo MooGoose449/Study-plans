@@ -101,10 +101,10 @@ export function planEditFieldMenu(planId: number): ActionRowBuilder<MessageActio
     .setCustomId(`sel:plan_edit_field:${planId}`)
     .setPlaceholder("What would you like to edit?")
     .addOptions(
-      new StringSelectMenuOptionBuilder().setLabel("Plan Name").setValue("name").setEmoji(EMOJI.PENCIL),
-      new StringSelectMenuOptionBuilder().setLabel("Units per Day").setValue("units_per_day").setEmoji(EMOJI.CALENDAR),
-      new StringSelectMenuOptionBuilder().setLabel("Goal Date").setValue("goal_date").setEmoji(EMOJI.CALENDAR),
-      new StringSelectMenuOptionBuilder().setLabel("Pause / Unpause").setValue("toggle_active").setEmoji(EMOJI.INFO),
+      new StringSelectMenuOptionBuilder().setLabel("Plan Name").setValue("name"),
+      new StringSelectMenuOptionBuilder().setLabel("Units per Day").setValue("units_per_day"),
+      new StringSelectMenuOptionBuilder().setLabel("Goal Date").setValue("goal_date"),
+      new StringSelectMenuOptionBuilder().setLabel("Pause / Unpause").setValue("toggle_active"),
       new StringSelectMenuOptionBuilder().setLabel("Set / Edit Reminder").setValue("reminder_set").setEmoji(EMOJI.BELL),
       new StringSelectMenuOptionBuilder().setLabel("Disable Reminder").setValue("reminder_disable").setEmoji(EMOJI.BELL_OFF),
     );
@@ -132,8 +132,7 @@ export function markReadButton(planId: number): ButtonBuilder {
   return new ButtonBuilder()
     .setCustomId(`btn:mark_read:${planId}`)
     .setLabel("Mark as Read")
-    .setStyle(ButtonStyle.Success)
-    .setEmoji(EMOJI.COMPLETE);
+    .setStyle(ButtonStyle.Success);
 }
 
 export function viewTodayButton(): ButtonBuilder {
@@ -148,8 +147,7 @@ export function snoozeButton(planId: number, minutes: number): ButtonBuilder {
   return new ButtonBuilder()
     .setCustomId(`btn:snooze:${planId}:${minutes}`)
     .setLabel(`Snooze ${minutes}m`)
-    .setStyle(ButtonStyle.Secondary)
-    .setEmoji(EMOJI.CLOCK);
+    .setStyle(ButtonStyle.Secondary);
 }
 
 /** Build a row with Mark as Read + View Today buttons for a plan. */
@@ -197,13 +195,11 @@ export function confirmRow(
     new ButtonBuilder()
       .setCustomId(confirmId)
       .setLabel(confirmLabel)
-      .setStyle(ButtonStyle.Success)
-      .setEmoji(EMOJI.CHECK),
+      .setStyle(ButtonStyle.Success),
     new ButtonBuilder()
       .setCustomId(cancelId)
       .setLabel(cancelLabel)
-      .setStyle(ButtonStyle.Secondary)
-      .setEmoji(EMOJI.CROSS),
+      .setStyle(ButtonStyle.Secondary),
   );
 }
 
