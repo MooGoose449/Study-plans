@@ -3,6 +3,8 @@ import { onReady } from "./events/ready.js";
 import { onInteractionCreate } from "./events/interactionCreate.js";
 import { onGuildMemberRemove } from "./events/guildMemberRemove.js";
 import { logger } from "../lib/logger.js";
+import { createClient as createRedisClient } from "redis";
+import { initCache } from "./utils/cache.js";
 
 let client: Client | null = null;
 
@@ -11,6 +13,22 @@ export async function startBot(): Promise<Client> {
   const token = process.env["DISCORD_TOKEN"];
   if (!token) {
     throw new Error("DISCORD_TOKEN environment variable is required.");
+  }
+
+  // Initialize Redis-backed cache if REDIS_URL is provided
+  const redisUrl = process.env.REDIS_URL;
+  if (redisUrl) {
+    try {
+      const redis = createRedisClient({ url: redisUrl });
+      await redis.connect();
+      initCache(redis as any);
+      logger.info({ redisUrl }, "Connected to Redis for cache/queue");
+    } catch (err) {
+      logger.warn({ err }, "Failed to connect to Redis — falling back to in-memory cache");
+      initCache();
+    }
+  } else {
+    initCache();
   }
 
   // Build intents list. GuildMembers is a privileged intent that must be
