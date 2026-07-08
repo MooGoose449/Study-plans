@@ -2,10 +2,12 @@
 //   <:lds:1523480103189876836>  — used for all scripture and conference sources
 //   🔔                          — used for reminders only
 //   ↩️                          — used for unread acknowledgements
+//   🔥                          — used for streak indicator
 
 const LDS = "<:lds:1523480103189876836>";
 const BELL = "🔔";
 const UNDO = "↩️";
+const FIRE = "🔥";
 
 export const EMOJI = {
   // Standard works — all use the lds server emoji
@@ -16,10 +18,10 @@ export const EMOJI = {
   PEARL_OF_GREAT_PRICE: LDS,
   CONFERENCE:           LDS,
 
-  // Progress / status — intentionally empty (no emoji)
+  // Progress / status
   COMPLETE:             "",
   INCOMPLETE:           "",
-  STREAK:               "",
+  STREAK:               FIRE,
   STAR:                 "",
   TROPHY:               "",
   MEDAL_GOLD:           "",
