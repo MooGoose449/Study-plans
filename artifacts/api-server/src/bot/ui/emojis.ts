@@ -1,9 +1,11 @@
-// Two emojis are used throughout the bot:
+// Use only these emojis:
 //   <:lds:1523480103189876836>  — used for all scripture and conference sources
 //   🔔                          — used for reminders only
+//   ↩️                          — used for unread acknowledgements
 
 const LDS = "<:lds:1523480103189876836>";
 const BELL = "🔔";
+const UNDO = "↩️";
 
 export const EMOJI = {
   // Standard works — all use the lds server emoji
@@ -14,7 +16,7 @@ export const EMOJI = {
   PEARL_OF_GREAT_PRICE: LDS,
   CONFERENCE:           LDS,
 
-  // Progress / status — no emoji
+  // Progress / status — intentionally empty (no emoji)
   COMPLETE:             "",
   INCOMPLETE:           "",
   STREAK:               "",
@@ -24,7 +26,7 @@ export const EMOJI = {
   MEDAL_SILVER:         "",
   MEDAL_BRONZE:         "",
 
-  // UI — no emoji (except bell for reminders)
+  // UI — only BELL and UNDO are used; everything else blank
   CALENDAR:             "",
   CLOCK:                "",
   BELL:                 BELL,
@@ -42,9 +44,9 @@ export const EMOJI = {
   LOADING:              "",
   GLOBE:                "",
   PEOPLE:               "",
-  UNDO:                 "↩️",
+  UNDO:                 UNDO,
 
-  // Progress bar pieces (text characters, not emoji)
+  // Progress bar pieces (text characters)
   PROGRESS_FILLED:      "█",
   PROGRESS_EMPTY:       "░",
 } as const;
@@ -52,11 +54,4 @@ export const EMOJI = {
 /** Get the emoji for a given source (standard work ID or "conference"). */
 export function getSourceEmoji(sourceType: "scripture" | "conference", sourceId?: string): string {
   return LDS;
-}
-
-/** Build a simple text progress bar. */
-export function buildProgressBar(percentage: number, width = 10): string {
-  const filled = Math.round((percentage / 100) * width);
-  const empty = width - filled;
-  return EMOJI.PROGRESS_FILLED.repeat(filled) + EMOJI.PROGRESS_EMPTY.repeat(empty);
 }
