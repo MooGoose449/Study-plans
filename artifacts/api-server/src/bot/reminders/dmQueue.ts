@@ -4,7 +4,6 @@ import { getActivePlans } from "../services/planService.js";
 import { getUserStats } from "../services/statsService.js";
 import { reminderDmEmbed } from "../ui/embeds.js";
 import { reminderActionRow } from "../ui/components.js";
-import { createClient as createRedisClient, type RedisClientType } from "redis";
 
 type ReminderJob = {
   discordId: string;
@@ -20,7 +19,7 @@ let clientRef: Client | null = null;
 let queue: ReminderJob[] = [];
 let intervalId: NodeJS.Timeout | null = null;
 let rate = DEFAULT_RATE;
-let redisClient: RedisClientType | null = null;
+let redisClient: any = null; // optional runtime-loaded redis client
 
 // Metrics
 let processedCount = 0;
@@ -34,7 +33,13 @@ export async function initDmQueue(client: Client, opts?: { ratePerSec?: number; 
   const redisUrl = opts?.redisUrl ?? process.env.REDIS_URL;
   if (redisUrl) {
     try {
-      redisClient = createRedisClient({ url: redisUrl });
+      // Dynamically require 'redis' at runtime so the bundler (esbuild) doesn't need it during build.
+      // This keeps the dependency optional and allows the app to run without installing redis in environments that don't need it.
+      // eslint-disable-next-line @typescript-eslint/no-implied-eval
+      const req = new Function("return require")() as any;
+      const redisModule = req("redis");
+      const createClient = redisModule.createClient;
+      redisClient = createClient({ url: redisUrl });
       await redisClient.connect();
       logger.info({ redisUrl }, "Connected to Redis for reminder queue");
     } catch (err) {
@@ -151,7 +156,15 @@ async function processJob(job: ReminderJob): Promise<void> {
 }
 
 export async function getQueueStats() {
-  const queued = redisClient ? (await redisClient.lLen(REDIS_QUEUE_KEY)).valueOf() : queue.length;
+  let queued = queue.length;
+  if (redisClient) {
+    try {
+      queued = (await redisClient.lLen(REDIS_QUEUE_KEY)).valueOf();
+    } catch (err) {
+      logger.warn({ err }, "Failed to read Redis queue length — falling back to in-memory length");
+      queued = queue.length;
+    }
+  }
   return {
     queued,
     processed: processedCount,
