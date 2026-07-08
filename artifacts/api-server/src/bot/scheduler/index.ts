@@ -8,6 +8,7 @@ import { reminderDmEmbed } from "../ui/embeds.js";
 import { reminderActionRow } from "../ui/components.js";
 import { logger } from "../../lib/logger.js";
 import type { ReminderSettings } from "@workspace/db";
+import { enqueueReminder, initDmQueue } from "../reminders/dmQueue.js";
 
 // Map of discordId → active CronJob
 const jobs = new Map<string, CronJob>();
@@ -61,7 +62,7 @@ export function scheduleReminder(
 
   const job = new CronJob(
     cronExpr,
-    () => { void sendReminderDm(client, settings.discordId); },
+    () => { enqueueReminder(settings.discordId); },
     null,   // onComplete
     true,   // start immediately
     settings.timezone,
@@ -85,6 +86,9 @@ export function cancelReminder(discordId: string): void {
 
 /** On bot startup: restore all enabled reminders from the database. */
 export async function restoreAllReminders(client: Client): Promise<void> {
+  // Initialize the DM queue so enqueued jobs are processed
+  initDmQueue(client);
+
   const allSettings = await getAllEnabledReminders();
   let restored = 0;
   let failed = 0;
