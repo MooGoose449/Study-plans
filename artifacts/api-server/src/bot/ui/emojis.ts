@@ -57,3 +57,15 @@ export const EMOJI = {
 export function getSourceEmoji(sourceType: "scripture" | "conference", sourceId?: string): string {
   return LDS;
 }
+
+/**
+ * Build a simple textual progress bar.
+ * @param pct percentage 0-100
+ * @param width number of characters (default 10)
+ */
+export function buildProgressBar(pct: number, width = 10): string {
+  const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+  const filledCount = Math.round((clamped / 100) * width);
+  const emptyCount = Math.max(0, width - filledCount);
+  return EMOJI.PROGRESS_FILLED.repeat(filledCount) + EMOJI.PROGRESS_EMPTY.repeat(emptyCount);
+}
