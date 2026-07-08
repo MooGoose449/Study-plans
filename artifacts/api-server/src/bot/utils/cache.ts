@@ -13,8 +13,10 @@ class InMemoryCache implements CacheBackend {
     if (!entry) return null;
     if (entry.expiresAt && Date.now() > entry.expiresAt) {
       this.store.delete(key);
+      cacheMisses++;
       return null;
     }
+    cacheHits++;
     return entry.value;
   }
 
@@ -28,7 +30,10 @@ class RedisCache implements CacheBackend {
   constructor(private client: RedisClientType) {}
 
   async get(key: string): Promise<string | null> {
-    return (await this.client.get(key)) as string | null;
+    const v = (await this.client.get(key)) as string | null;
+    if (v === null) cacheMisses++;
+    else cacheHits++;
+    return v;
   }
 
   async set(key: string, value: string, ttlSeconds?: number): Promise<void> {
@@ -41,6 +46,10 @@ class RedisCache implements CacheBackend {
 }
 
 let backend: CacheBackend | null = null;
+
+// Simple in-memory metrics
+let cacheHits = 0;
+let cacheMisses = 0;
 
 export function initCache(redisClient?: RedisClientType) {
   if (redisClient) {
@@ -58,4 +67,8 @@ export async function cacheGet(key: string): Promise<string | null> {
 export async function cacheSet(key: string, value: string, ttlSeconds?: number): Promise<void> {
   if (!backend) initCache();
   return backend!.set(key, value, ttlSeconds);
+}
+
+export function getCacheStats() {
+  return { hits: cacheHits, misses: cacheMisses };
 }
