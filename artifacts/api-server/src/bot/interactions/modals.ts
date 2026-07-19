@@ -15,13 +15,13 @@ import {
   errorEmbed,
   successEmbed,
 } from "../ui/embeds.js";
-import { setupReminderRow } from "../ui/components.js";
 import {
   isValidTime,
   isValidDate,
   isValidTimezone,
   parseDaysOfWeek,
   getTodayUTC,
+  daysBetween,
 } from "../utils/index.js";
 import { STANDARD_WORKS } from "../metadata/scriptures.js";
 import { CONFERENCES } from "../metadata/conferences.js";
@@ -41,16 +41,16 @@ export async function handleModal(
   await upsertUser(discordId, interaction.user.username);
 
   switch (action) {
+    case "plan_delete_type":
+      await handlePlanDeleteType(interaction, discordId, Number(params[0]));
+      break;
+
     case "plan_create":
       await handlePlanCreate(interaction, discordId, params);
       break;
 
     case "plan_edit":
       await handlePlanEdit(interaction, discordId, Number(params[0]), params[1]!);
-      break;
-
-    case "plan_delete_confirm":
-      await handlePlanDeleteConfirm(interaction, discordId, Number(params[0]));
       break;
 
     case "reminder_set":
@@ -60,7 +60,6 @@ export async function handleModal(
     default:
       await interaction.reply({
         embeds: [errorEmbed("Unknown form submission.")],
-        ephemeral: true,
       });
   }
 }
@@ -72,37 +71,47 @@ async function handlePlanCreate(
   discordId: string,
   params: string[],
 ) {
-  const [sourceType, sourceId, totalItemsStr] = params as [
+  const [sourceType, sourceId, totalItemsStr, mode] = params as [
     "scripture" | "conference",
     string,
     string,
+    "daily" | "dated",
   ];
 
   const name = interaction.fields.getTextInputValue("plan_name").trim();
-  const unitsRaw = interaction.fields.getTextInputValue("units_per_day").trim();
-  const goalDateRaw = interaction.fields
-    .getTextInputValue("goal_date")
-    .trim();
-
-  // Validate
-  const unitsPerDay = parseInt(unitsRaw, 10);
-  if (isNaN(unitsPerDay) || unitsPerDay < 1 || unitsPerDay > 20) {
-    await interaction.reply({
-      embeds: [errorEmbed("Units per day must be a number between 1 and 20.")],
-      ephemeral: true,
-    });
-    return;
-  }
-
-  if (goalDateRaw && !isValidDate(goalDateRaw)) {
-    await interaction.reply({
-      embeds: [errorEmbed("Invalid goal date. Please use YYYY-MM-DD format.")],
-      ephemeral: true,
-    });
-    return;
-  }
-
+  const today = getTodayUTC();
   const totalItems = parseInt(totalItemsStr ?? "0", 10) || getSourceTotalItems(sourceType, sourceId);
+
+  let unitsPerDay: number;
+  let goalDate: string | null = null;
+
+  if (mode === "dated") {
+    const goalDateRaw = interaction.fields.getTextInputValue("goal_date").trim();
+    if (!isValidDate(goalDateRaw)) {
+      await interaction.reply({
+        embeds: [errorEmbed("Invalid date format. Please use YYYY-MM-DD, e.g. `2025-12-31`.")],
+      });
+      return;
+    }
+    const days = daysBetween(today, goalDateRaw);
+    if (days < 1) {
+      await interaction.reply({
+        embeds: [errorEmbed("Goal date must be in the future.")],
+      });
+      return;
+    }
+    unitsPerDay = Math.max(1, Math.ceil(totalItems / days));
+    goalDate = goalDateRaw;
+  } else {
+    const unitsRaw = interaction.fields.getTextInputValue("units_per_day").trim();
+    unitsPerDay = parseInt(unitsRaw, 10);
+    if (isNaN(unitsPerDay) || unitsPerDay < 1 || unitsPerDay > 20) {
+      await interaction.reply({
+        embeds: [errorEmbed("Units per day must be a number between 1 and 20.")],
+      });
+      return;
+    }
+  }
 
   const plan = await createPlan({
     discordId,
@@ -112,20 +121,44 @@ async function handlePlanCreate(
     currentPosition: 0,
     totalItems,
     unitsPerDay,
-    startDate: getTodayUTC(),
-    goalDate: goalDateRaw || null,
+    startDate: today,
+    goalDate,
     isActive: true,
     isComplete: false,
   });
 
   await interaction.reply({
     embeds: [planDetailEmbed(plan)],
-    components: [setupReminderRow()],
-    ephemeral: true,
   });
 }
 
-// ── Plan editing ─────────────────────────────────────────────────────────
+async function handlePlanDeleteType(
+  interaction: ModalSubmitInteraction,
+  discordId: string,
+  planId: number,
+) {
+  const typed = interaction.fields.getTextInputValue("confirm_name").trim();
+  const plan = await getPlan(planId, discordId);
+
+  if (!plan) {
+    await interaction.reply({ embeds: [errorEmbed("Plan not found.")] });
+    return;
+  }
+
+  if (typed.toLowerCase() !== plan.name.toLowerCase()) {
+    await interaction.reply({
+      embeds: [errorEmbed(`Name doesn't match. Expected: **${plan.name}**`)],
+    });
+    return;
+  }
+
+  await deletePlan(planId, discordId);
+  await interaction.reply({
+    embeds: [successEmbed(`**${plan.name}** has been deleted.`)],
+  });
+}
+
+// ── Plan editing ──────────────────────────────────────────────────────────
 
 async function handlePlanEdit(
   interaction: ModalSubmitInteraction,
@@ -137,13 +170,13 @@ async function handlePlanEdit(
   const plan = await getPlan(planId, discordId);
 
   if (!plan) {
-    await interaction.reply({ embeds: [errorEmbed("Plan not found.")], ephemeral: true });
+    await interaction.reply({ embeds: [errorEmbed("Plan not found.")]});
     return;
   }
 
   if (field === "name") {
     if (!value) {
-      await interaction.reply({ embeds: [errorEmbed("Name cannot be empty.")], ephemeral: true });
+      await interaction.reply({ embeds: [errorEmbed("Name cannot be empty.")]});
       return;
     }
     await updatePlan(planId, discordId, { name: value });
@@ -152,7 +185,6 @@ async function handlePlanEdit(
     if (isNaN(n) || n < 1 || n > 20) {
       await interaction.reply({
         embeds: [errorEmbed("Units per day must be between 1 and 20.")],
-        ephemeral: true,
       });
       return;
     }
@@ -161,7 +193,6 @@ async function handlePlanEdit(
     if (value && !isValidDate(value)) {
       await interaction.reply({
         embeds: [errorEmbed("Invalid date format. Use YYYY-MM-DD.")],
-        ephemeral: true,
       });
       return;
     }
@@ -171,50 +202,6 @@ async function handlePlanEdit(
   const updated = await getPlan(planId, discordId);
   await interaction.reply({
     embeds: [planDetailEmbed(updated ?? plan)],
-    ephemeral: true,
-  });
-}
-
-// ── Plan deletion confirmation ────────────────────────────────────────────
-
-async function handlePlanDeleteConfirm(
-  interaction: ModalSubmitInteraction,
-  discordId: string,
-  planId: number,
-) {
-  const confirmedName = interaction.fields.getTextInputValue("plan_name_confirm").trim();
-  const plan = await getPlan(planId, discordId);
-
-  if (!plan) {
-    await interaction.reply({
-      embeds: [errorEmbed("Plan not found.")],
-      ephemeral: true,
-    });
-    return;
-  }
-
-  // Check if the user typed the correct plan name
-  if (confirmedName !== plan.name) {
-    await interaction.reply({
-      embeds: [errorEmbed(`Plan name does not match. Expected **${plan.name}**, got **${confirmedName}**.`)],
-      ephemeral: true,
-    });
-    return;
-  }
-
-  // Delete the plan
-  const deleted = await deletePlan(planId, discordId);
-  if (!deleted) {
-    await interaction.reply({
-      embeds: [errorEmbed("Failed to delete plan. It may have already been deleted.")],
-      ephemeral: true,
-    });
-    return;
-  }
-
-  await interaction.reply({
-    embeds: [successEmbed(`${EMOJI.TRASH} Plan **${plan.name}** has been deleted.`)],
-    ephemeral: true,
   });
 }
 
@@ -233,7 +220,6 @@ async function handleReminderSet(
   if (!isValidTime(timeOfDay)) {
     await interaction.reply({
       embeds: [errorEmbed("Invalid time format. Please use HH:MM (24-hour), e.g. `08:00`.")],
-      ephemeral: true,
     });
     return;
   }
@@ -246,7 +232,6 @@ async function handleReminderSet(
           `Invalid timezone \`${timezone}\`. Use a valid IANA name like \`America/Denver\`, \`America/New_York\`, or \`UTC\`.`,
         ),
       ],
-      ephemeral: true,
     });
     return;
   }
@@ -260,7 +245,6 @@ async function handleReminderSet(
           "Invalid days of week. Enter comma-separated numbers 0–6 (0=Sunday). Example: `1,2,3,4,5` for Mon–Fri.",
         ),
       ],
-      ephemeral: true,
     });
     return;
   }
@@ -277,6 +261,5 @@ async function handleReminderSet(
 
   await interaction.reply({
     embeds: [reminderSettingsEmbed(settings)],
-    ephemeral: true,
   });
 }

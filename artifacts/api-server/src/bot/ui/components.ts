@@ -203,6 +203,41 @@ export function confirmRow(
   );
 }
 
+// ── Pace type select menu ────────────────────────────────────────────────────
+
+export function planPaceTypeMenu(
+  sourceType: string,
+  sourceId: string,
+  totalItems: number,
+): ActionRowBuilder<MessageActionRowComponentBuilder> {
+  const unitLabel = sourceType === "conference" ? "talks" : "chapters";
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId(`sel:plan_pace_type:${sourceType}:${sourceId}:${totalItems}`)
+    .setPlaceholder("How do you want to pace your reading?")
+    .addOptions(
+      new StringSelectMenuOptionBuilder()
+        .setLabel(`${unitLabel === "chapters" ? "Chapters" : "Talks"} per day`)
+        .setValue("daily")
+        .setDescription(`Set how many ${unitLabel} to read each day`),
+      new StringSelectMenuOptionBuilder()
+        .setLabel("By goal date")
+        .setValue("dated")
+        .setDescription("Pick a finish date — we'll calculate your daily pace"),
+    );
+  return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(menu);
+}
+
+// ── Unread (undo) button ─────────────────────────────────────────────────────
+
+export function unreadRow(planId: number): ActionRowBuilder<MessageActionRowComponentBuilder> {
+  return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`btn:mark_unread:${planId}`)
+      .setLabel("↩️ Undo Read")
+      .setStyle(ButtonStyle.Danger),
+  );
+}
+
 // ── Pagination buttons ───────────────────────────────────────────────────────
 
 export function paginationRow(

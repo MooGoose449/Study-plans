@@ -29,7 +29,6 @@ export async function handleInteraction(
         if ("replied" in interaction && !(interaction as any).replied) {
           await replyFn({
             content: "An unexpected error occurred. Please try again.",
-            ephemeral: true,
           });
         }
       }

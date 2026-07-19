@@ -1,17 +1,9 @@
 import type { ButtonInteraction, Client } from "discord.js";
-import {
-  ModalBuilder,
-  TextInputBuilder,
-  TextInputStyle,
-  ActionRowBuilder,
-  type ModalActionRowComponentBuilder,
-} from "discord.js";
 import { markAsRead } from "../services/readService.js";
 import { getPlan, deletePlan, updatePlan } from "../services/planService.js";
 import { getActivePlans } from "../services/planService.js";
 import { getUserStats } from "../services/statsService.js";
 import { upsertUser } from "../services/userService.js";
-import { getReminderSettings } from "../services/reminderService.js";
 import {
   markReadSuccessEmbed,
   errorEmbed,
@@ -49,12 +41,8 @@ export async function handleButton(
       await handlePlanDeleteConfirm(interaction, discordId, Number(params[0]));
       break;
 
-    case "setup_reminder":
-      await handleSetupReminder(interaction, discordId);
-      break;
-
-    case "skip_reminder":
-      await interaction.update({ components: [] });
+    case "mark_unread":
+      await handleMarkUnread(interaction, discordId, Number(params[0]));
       break;
 
     case "cancel":
@@ -69,7 +57,6 @@ export async function handleButton(
     default:
       await interaction.reply({
         embeds: [errorEmbed("Unknown action. Please try the command again.")],
-        ephemeral: true,
       });
   }
 }
@@ -80,7 +67,7 @@ async function handleMarkRead(
   planId: number,
 ) {
   if (isNaN(planId)) {
-    await interaction.reply({ embeds: [errorEmbed("Invalid plan ID.")], ephemeral: true });
+    await interaction.reply({ embeds: [errorEmbed("Invalid plan ID.")]});
     return;
   }
 
@@ -96,7 +83,6 @@ async function handleMarkRead(
     };
     await interaction.followUp({
       embeds: [errorEmbed(messages[result.reason] ?? "Something went wrong.")],
-      ephemeral: true,
     });
     return;
   }
@@ -106,85 +92,40 @@ async function handleMarkRead(
 
   await interaction.followUp({
     embeds: [markReadSuccessEmbed(plan, result.newStreak, result.isComplete)],
-    ephemeral: true,
+    components: result.isComplete ? [] : [unreadRow(planId)],
   });
 }
 
-async function handlePlanDeleteConfirm(
+async function handleMarkUnread(
   interaction: ButtonInteraction,
   discordId: string,
   planId: number,
 ) {
-  if (isNaN(planId)) {
-    await interaction.update({ content: "Invalid plan ID.", embeds: [], components: [] });
-    return;
-  }
-
   await interaction.deferUpdate();
 
-  const plan = await getPlan(planId, discordId);
-  if (!plan) {
-    await interaction.editReply({ content: "Plan not found.", embeds: [], components: [] });
+  const result = await markAsUnread(planId, discordId);
+
+  if (!result.success) {
+    await interaction.followUp({
+      embeds: [errorEmbed(
+        result.reason === "not_read_today"
+          ? "Nothing to undo — today's reading was already removed or not marked yet."
+          : "Something went wrong.",
+      )],
+    });
     return;
   }
 
-  await deletePlan(planId, discordId);
-  await interaction.editReply({
-    embeds: [successEmbed(`Plan **${plan.name}** has been deleted.`)],
-    components: [],
+  await interaction.followUp({
+    embeds: [successEmbed("Reading undone! Today's entry has been removed.")],
   });
-}
-
-async function handleSetupReminder(
-  interaction: ButtonInteraction,
-  discordId: string,
-) {
-  const existing = await getReminderSettings(discordId);
-
-  const modal = new ModalBuilder()
-    .setCustomId("mod:reminder_set")
-    .setTitle(`${EMOJI.BELL} Set Study Reminder`);
-
-  const timeInput = new TextInputBuilder()
-    .setCustomId("time_of_day")
-    .setLabel("Time (HH:MM, 24-hour format)")
-    .setStyle(TextInputStyle.Short)
-    .setPlaceholder("08:00")
-    .setValue(existing?.timeOfDay ?? "08:00")
-    .setRequired(true)
-    .setMinLength(5)
-    .setMaxLength(5);
-
-  const timezoneInput = new TextInputBuilder()
-    .setCustomId("timezone")
-    .setLabel("Timezone (e.g. America/Denver)")
-    .setStyle(TextInputStyle.Short)
-    .setPlaceholder("America/Denver")
-    .setValue(existing?.timezone ?? "UTC")
-    .setRequired(true);
-
-  const daysInput = new TextInputBuilder()
-    .setCustomId("days_of_week")
-    .setLabel("Days of week (0=Sun to 6=Sat, comma-separated)")
-    .setStyle(TextInputStyle.Short)
-    .setPlaceholder("0,1,2,3,4,5,6  (every day)")
-    .setValue((existing?.daysOfWeek as number[] | undefined)?.join(",") ?? "0,1,2,3,4,5,6")
-    .setRequired(true);
-
-  modal.addComponents(
-    new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(timeInput),
-    new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(timezoneInput),
-    new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(daysInput),
-  );
-
-  await interaction.showModal(modal);
 }
 
 async function handleViewToday(
   interaction: ButtonInteraction,
   discordId: string,
 ) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply();
 
   const plans = await getActivePlans(discordId);
   const stats = await getUserStats(discordId);
@@ -209,5 +150,26 @@ async function handleViewToday(
   await interaction.editReply({
     embeds,
     components: rows.slice(0, 5),
+  });
+}
+
+async function handlePlanDeleteConfirm(
+  interaction: ButtonInteraction,
+  discordId: string,
+  planId: number,
+) {
+  await interaction.deferUpdate();
+
+  const deleted = await deletePlan(planId, discordId);
+  if (!deleted) {
+    await interaction.followUp({
+      embeds: [errorEmbed("Plan not found or already deleted.")],
+    });
+    return;
+  }
+
+  await interaction.editReply({
+    embeds: [successEmbed(`Plan deleted successfully.`)],
+    components: [],
   });
 }

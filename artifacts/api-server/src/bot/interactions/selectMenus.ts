@@ -14,10 +14,8 @@ import {
   updatePlan,
   getSourceTotalItems,
 } from "../services/planService.js";
-import { markAsRead, markAsUnread } from "../services/readService.js";
-import { getReminderSettings, disableReminders } from "../services/reminderService.js";
-import { cancelReminder } from "../scheduler/index.js";
-import { markReadSuccessEmbed, planDetailEmbed, errorEmbed, selectSourceEmbed, successEmbed } from "../ui/embeds.js";
+import { markAsRead } from "../services/readService.js";
+import { markReadSuccessEmbed, planDetailEmbed, errorEmbed, selectSourceEmbed } from "../ui/embeds.js";
 import {
   scriptureSelectMenu,
   conferenceSelectMenu,
@@ -63,7 +61,7 @@ export async function handleSelectMenu(
       break;
 
     case "plan_edit_field":
-      await handlePlanEditField(interaction, discordId, Number(params[0]), client);
+      await handlePlanEditField(interaction, discordId, Number(params[0]));
       break;
 
     case "plan_delete_select":
@@ -71,13 +69,12 @@ export async function handleSelectMenu(
       break;
 
     case "read_plan_select":
-      await handleReadPlanSelect(interaction, discordId, params[0]);
+      await handleReadPlanSelect(interaction, discordId);
       break;
 
     default:
       await interaction.reply({
         embeds: [errorEmbed("Unknown selection. Please try again.")],
-        ephemeral: true,
       });
   }
 }
@@ -106,7 +103,7 @@ async function handleScriptureSourceSelect(
   const sourceId = interaction.values[0]!;
   const work = STANDARD_WORKS.find((w) => w.id === sourceId);
   if (!work) {
-    await interaction.reply({ embeds: [errorEmbed("Invalid selection.")], ephemeral: true });
+    await interaction.reply({ embeds: [errorEmbed("Invalid selection.")]});
     return;
   }
 
@@ -120,7 +117,7 @@ async function handleConferenceSourceSelect(
   const sourceId = interaction.values[0]!;
   const conf = CONFERENCES.find((c) => c.id === sourceId);
   if (!conf) {
-    await interaction.reply({ embeds: [errorEmbed("Invalid selection.")], ephemeral: true });
+    await interaction.reply({ embeds: [errorEmbed("Invalid selection.")]});
     return;
   }
 
@@ -128,47 +125,75 @@ async function handleConferenceSourceSelect(
   await showPlanCreationModal(interaction, "conference", sourceId, conf.name, totalItems);
 }
 
-async function showPlanCreationModal(
+async function showPaceTypeMenu(
   interaction: StringSelectMenuInteraction,
   sourceType: "scripture" | "conference",
   sourceId: string,
-  sourceName: string,
   totalItems: number,
 ) {
+  await interaction.update({
+    embeds: [],
+    content: "How would you like to pace your reading?",
+    components: [planPaceTypeMenu(sourceType, sourceId, totalItems)],
+  });
+}
+
+async function handlePlanPaceTypeSelect(interaction: StringSelectMenuInteraction) {
+  // customId = "sel:plan_pace_type:<sourceType>:<sourceId>:<totalItems>"
+  const parts = interaction.customId.split(":");
+  const sourceType = parts[2] as "scripture" | "conference";
+  const sourceId = parts[3]!;
+  const totalItems = Number(parts[4]);
+  const mode = interaction.values[0] as "daily" | "dated";
+
+  const sourceName =
+    sourceType === "scripture"
+      ? (STANDARD_WORKS.find((w) => w.id === sourceId)?.name ?? sourceId)
+      : (CONFERENCES.find((c) => c.id === sourceId)?.name ?? sourceId);
+
+  const unitLabel = sourceType === "scripture" ? "Chapters" : "Talks";
   const defaultUnits = sourceType === "conference" ? "1" : "2";
 
   const modal = new ModalBuilder()
-    .setCustomId(`mod:plan_create:${sourceType}:${sourceId}:${totalItems}`)
+    .setCustomId(`mod:plan_create:${sourceType}:${sourceId}:${totalItems}:${mode}`)
     .setTitle(`${EMOJI.PLUS} New Study Plan`);
 
-  const nameInput = new TextInputBuilder()
-    .setCustomId("plan_name")
-    .setLabel("Plan Name")
-    .setStyle(TextInputStyle.Short)
-    .setPlaceholder(`e.g. Morning ${sourceName} Study`)
-    .setRequired(true)
-    .setMaxLength(80);
-
-  const unitsInput = new TextInputBuilder()
-    .setCustomId("units_per_day")
-    .setLabel(`${sourceType === "scripture" ? "Chapters" : "Talks"} per day`)
-    .setStyle(TextInputStyle.Short)
-    .setPlaceholder(defaultUnits)
-    .setValue(defaultUnits)
-    .setRequired(true);
-
-  const goalInput = new TextInputBuilder()
-    .setCustomId("goal_date")
-    .setLabel("Goal completion date (optional, YYYY-MM-DD)")
-    .setStyle(TextInputStyle.Short)
-    .setPlaceholder("2025-12-31")
-    .setRequired(false);
-
   modal.addComponents(
-    new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(nameInput),
-    new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(unitsInput),
-    new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(goalInput),
+    new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
+      new TextInputBuilder()
+        .setCustomId("plan_name")
+        .setLabel("Plan Name")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder(`e.g. Morning ${sourceName} Study`)
+        .setRequired(true)
+        .setMaxLength(80),
+    ),
   );
+
+  if (mode === "daily") {
+    modal.addComponents(
+      new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("units_per_day")
+          .setLabel(`${unitLabel} per day`)
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder(defaultUnits)
+          .setValue(defaultUnits)
+          .setRequired(true),
+      ),
+    );
+  } else {
+    modal.addComponents(
+      new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("goal_date")
+          .setLabel("Goal completion date (YYYY-MM-DD)")
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder("2025-12-31")
+          .setRequired(true),
+      ),
+    );
+  }
 
   await interaction.showModal(modal);
 }
@@ -208,75 +233,11 @@ async function handlePlanEditField(
   interaction: StringSelectMenuInteraction,
   discordId: string,
   planId: number,
-  client: Client,
 ) {
   const field = interaction.values[0]!;
-
-  // ── Reminder actions (per-user, not per-plan) ──────────────────────────
-  if (field === "reminder_set") {
-    const existing = await getReminderSettings(discordId);
-    const modal = new ModalBuilder()
-      .setCustomId("mod:reminder_set")
-      .setTitle(`${EMOJI.BELL} Set Study Reminder`);
-
-    const timeInput = new TextInputBuilder()
-      .setCustomId("time_of_day")
-      .setLabel("Time (HH:MM, 24-hour format)")
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder("08:00")
-      .setValue(existing?.timeOfDay ?? "08:00")
-      .setRequired(true)
-      .setMinLength(5)
-      .setMaxLength(5);
-
-    const timezoneInput = new TextInputBuilder()
-      .setCustomId("timezone")
-      .setLabel("Timezone (e.g. America/Denver)")
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder("America/Denver")
-      .setValue(existing?.timezone ?? "UTC")
-      .setRequired(true);
-
-    const daysInput = new TextInputBuilder()
-      .setCustomId("days_of_week")
-      .setLabel("Days of week (0=Sun to 6=Sat, comma-separated)")
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder("0,1,2,3,4,5,6  (every day)")
-      .setValue((existing?.daysOfWeek as number[] | undefined)?.join(",") ?? "0,1,2,3,4,5,6")
-      .setRequired(true);
-
-    modal.addComponents(
-      new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(timeInput),
-      new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(timezoneInput),
-      new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(daysInput),
-    );
-
-    await interaction.showModal(modal);
-    return;
-  }
-
-  if (field === "reminder_disable") {
-    const existing = await getReminderSettings(discordId);
-    if (!existing || !existing.enabled) {
-      await interaction.update({
-        embeds: [errorEmbed("You don't have any active reminders to disable.")],
-        components: [],
-      });
-      return;
-    }
-    await disableReminders(discordId);
-    cancelReminder(discordId);
-    await interaction.update({
-      embeds: [successEmbed(`${EMOJI.BELL_OFF} Reminders disabled.`)],
-      components: [],
-    });
-    return;
-  }
-
-  // ── Plan field edits ───────────────────────────────────────────────────
   const plan = await getPlan(planId, discordId);
   if (!plan) {
-    await interaction.reply({ embeds: [errorEmbed("Plan not found.")], ephemeral: true });
+    await interaction.reply({ embeds: [errorEmbed("Plan not found.")]});
     return;
   }
 
@@ -284,11 +245,7 @@ async function handlePlanEditField(
     const newActive = !plan.isActive;
     await updatePlan(planId, discordId, { isActive: newActive });
     await interaction.update({
-      embeds: [
-        successEmbed(
-          `${newActive ? EMOJI.COMPLETE + " Plan **" + plan.name + "** is now active." : EMOJI.INFO + " Plan **" + plan.name + "** is now paused."}`,
-        ),
-      ],
+      embeds: [errorEmbed(`Plan is now ${newActive ? "active" : "paused"}.`)],
       components: [],
     });
     return;
@@ -343,67 +300,29 @@ async function handlePlanDeleteSelect(
     return;
   }
 
-  // Show confirmation modal asking user to type plan name
   const modal = new ModalBuilder()
-    .setCustomId(`mod:plan_delete_confirm:${planId}`)
-    .setTitle(`${EMOJI.TRASH} Confirm Deletion`);
-
-  const input = new TextInputBuilder()
-    .setCustomId("plan_name_confirm")
-    .setLabel(`Type the plan name to confirm deletion`)
-    .setStyle(TextInputStyle.Short)
-    .setPlaceholder(plan.name)
-    .setRequired(true)
-    .setMaxLength(80);
-
+    .setCustomId(`mod:plan_delete_type:${plan.id}`)
+    .setTitle("Confirm Plan Deletion");
   modal.addComponents(
-    new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(input),
+    new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
+      new TextInputBuilder()
+        .setCustomId("confirm_name")
+        .setLabel(`Type "${plan.name}" to confirm`)
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder(plan.name)
+        .setRequired(true),
+    ),
   );
-
   await interaction.showModal(modal);
 }
 
 async function handleReadPlanSelect(
   interaction: StringSelectMenuInteraction,
   discordId: string,
-  action?: string,
 ) {
   await interaction.deferUpdate();
 
   const planId = Number(interaction.values[0]);
-  const readAction = action || "read";
-
-  if (readAction === "unread") {
-    const result = await markAsUnread(planId, discordId);
-
-    if (!result.success) {
-      const messages: Record<string, string> = {
-        not_read: "This plan hasn't been marked as read today.",
-        plan_not_found: "Plan not found.",
-      };
-      await interaction.followUp({
-        embeds: [errorEmbed(messages[result.reason] ?? "Something went wrong.")],
-        ephemeral: true,
-      });
-      return;
-    }
-
-    const plan = await getPlan(planId, discordId);
-    if (!plan) return;
-
-    await interaction.editReply({
-      content: "",
-      embeds: [
-        errorEmbed(
-          `${EMOJI.UNDO} Marked as unread. Your progress has been restored to **${plan.currentPosition}** units.`,
-        ),
-      ],
-      components: [],
-    });
-    return;
-  }
-
-  // Handle read action
   const result = await markAsRead(planId, discordId);
 
   if (!result.success) {
@@ -414,7 +333,6 @@ async function handleReadPlanSelect(
     };
     await interaction.followUp({
       embeds: [errorEmbed(messages[result.reason] ?? "Something went wrong.")],
-      ephemeral: true,
     });
     return;
   }
@@ -425,6 +343,6 @@ async function handleReadPlanSelect(
   await interaction.editReply({
     content: "",
     embeds: [markReadSuccessEmbed(plan, result.newStreak, result.isComplete)],
-    components: [],
+    components: result.isComplete ? [] : [unreadRow(planId)],
   });
 }

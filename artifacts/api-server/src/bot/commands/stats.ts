@@ -23,7 +23,7 @@ export const data = new SlashCommandBuilder()
 export async function execute(
   interaction: ChatInputCommandInteraction,
 ): Promise<void> {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply();
 
   const discordId = interaction.user.id;
   await upsertUser(discordId, interaction.user.username);

@@ -54,5 +54,5 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     )
     .setFooter({ text: "All commands are private. Only you can see the responses." });
 
-  await interaction.reply({ embeds: [embed], ephemeral: true });
+  await interaction.reply({ embeds: [embed]});
 }

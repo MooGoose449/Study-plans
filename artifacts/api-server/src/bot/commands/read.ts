@@ -14,16 +14,31 @@ import { EMOJI } from "../ui/emojis.js";
 
 export const data = new SlashCommandBuilder()
   .setName("read")
-  .setDescription("Mark today's reading as complete");
+  .setDescription("Mark today's reading as complete")
+  .addIntegerOption((o) =>
+    o
+      .setName("plan")
+      .setDescription("Plan ID to mark as read (optional if only one active plan)")
+      .setRequired(false),
+  );
 
 export async function execute(
   interaction: ChatInputCommandInteraction,
 ): Promise<void> {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply();
 
   const discordId = interaction.user.id;
   await upsertUser(discordId, interaction.user.username);
 
+  const planId = interaction.options.getInteger("plan");
+
+  // If plan ID specified, mark that one directly
+  if (planId !== null) {
+    await doMarkRead(interaction, discordId, planId);
+    return;
+  }
+
+  // Otherwise, find active plans
   const activePlans = await getActivePlans(discordId);
 
   if (activePlans.length === 0) {
@@ -33,19 +48,21 @@ export async function execute(
     return;
   }
 
+  // Only one plan — mark it automatically
   if (activePlans.length === 1) {
     await doMarkRead(interaction, discordId, activePlans[0]!.id);
     return;
   }
 
+  // Multiple plans — let user choose
   await interaction.editReply({
     content: `${EMOJI.BOOK} Which plan did you read today?`,
-    components: [planSelectMenu(activePlans, "sel:read_plan_select:read")],
+    components: [planSelectMenu(activePlans, "sel:read_plan_select")],
   });
 }
 
 export async function doMarkRead(
-  interaction: ChatInputCommandInteraction | { editReply: Function },
+  interaction: ChatInputCommandInteraction | { editReply: Function; followUp?: Function },
   discordId: string,
   planId: number,
 ): Promise<void> {
@@ -63,11 +80,14 @@ export async function doMarkRead(
     return;
   }
 
+  // Reload plan for updated position
   const plan = await getPlan(planId, discordId);
   if (!plan) return;
 
   await (interaction as any).editReply({
-    embeds: [markReadSuccessEmbed(plan, result.newStreak, result.isComplete)],
-    components: [],
+    embeds: [
+      markReadSuccessEmbed(plan, result.newStreak, result.isComplete),
+    ],
+    components: result.isComplete ? [] : [unreadRow(plan.id)],
   });
 }
