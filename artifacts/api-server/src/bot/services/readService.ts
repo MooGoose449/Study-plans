@@ -7,7 +7,7 @@ export type MarkReadResult =
 
 export type MarkUnreadResult =
   | { success: true; restoredPosition: number }
-  | { success: false; reason: "not_read" | "plan_not_found" };
+  | { success: false; reason: "not_read_today" | "plan_not_found" };
 
 /**
  * Reverse today's reading for a plan: delete the history row,
@@ -60,7 +60,7 @@ export async function markAsUnread(
 
     if (historyResult.rows.length === 0) {
       await client.query("ROLLBACK");
-      return { success: false, reason: "not_read" };
+      return { success: false, reason: "not_read_today" };
     }
 
     const history = historyResult.rows[0]!;
@@ -352,83 +352,6 @@ export async function markAsRead(
       streakUpdated,
       newStreak,
     };
-  } catch (err) {
-    await client.query("ROLLBACK").catch(() => {});
-    throw err;
-  } finally {
-    client.release();
-  }
-}
-
-export type MarkUnreadResult =
-  | { success: true }
-  | { success: false; reason: "not_read_today" | "plan_not_found" };
-
-/**
- * Undo today's reading for a plan.
- * Deletes the reading_history row and reverts the plan's position.
- * If no other plans were read today, rolls back streak/stat counts too.
- */
-export async function markAsUnread(
-  planId: number,
-  discordId: string,
-): Promise<MarkUnreadResult> {
-  const today = getTodayUTC();
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-
-    const historyResult = await client.query<{
-      id: number;
-      position_before: number;
-      items_read: number;
-    }>(
-      `SELECT id, position_before, items_read
-         FROM reading_history
-        WHERE plan_id = $1 AND discord_id = $2 AND read_date = $3`,
-      [planId, discordId, today],
-    );
-
-    if (historyResult.rows.length === 0) {
-      await client.query("ROLLBACK");
-      return { success: false, reason: "not_read_today" };
-    }
-
-    const history = historyResult.rows[0]!;
-
-    // Delete the history row
-    await client.query(`DELETE FROM reading_history WHERE id = $1`, [history.id]);
-
-    // Revert plan position and clear completion flag
-    await client.query(
-      `UPDATE study_plans
-          SET current_position = $1, is_complete = false, updated_at = NOW()
-        WHERE id = $2`,
-      [history.position_before, planId],
-    );
-
-    // Only roll back streak/stats if this was the only read today across all plans
-    const otherReads = await client.query(
-      `SELECT 1 FROM reading_history WHERE discord_id = $1 AND read_date = $2 LIMIT 1`,
-      [discordId, today],
-    );
-
-    if (otherReads.rows.length === 0) {
-      await client.query(
-        `UPDATE statistics
-            SET total_reading_days = GREATEST(0, total_reading_days - 1),
-                current_streak     = GREATEST(0, current_streak - 1),
-                last_read_date     = (
-                  SELECT MAX(read_date) FROM reading_history WHERE discord_id = $1
-                ),
-                updated_at = NOW()
-          WHERE discord_id = $1`,
-        [discordId],
-      );
-    }
-
-    await client.query("COMMIT");
-    return { success: true };
   } catch (err) {
     await client.query("ROLLBACK").catch(() => {});
     throw err;
