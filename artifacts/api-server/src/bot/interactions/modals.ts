@@ -50,7 +50,11 @@ export async function handleModal(
       break;
 
     case "plan_edit":
-      await handlePlanEdit(interaction, discordId, Number(params[0]), params[1]!);
+      if (!params[0] || !params[1]) {
+        await interaction.reply({ embeds: [errorEmbed("Invalid edit request. Try the command again.")] });
+        return;
+      }
+      await handlePlanEdit(interaction, discordId, Number(params[0]), params[1]);
       break;
 
     case "reminder_set":

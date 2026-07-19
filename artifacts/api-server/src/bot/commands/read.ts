@@ -9,7 +9,7 @@ import {
   markReadSuccessEmbed,
   errorEmbed,
 } from "../ui/embeds.js";
-import { planSelectMenu } from "../ui/components.js";
+import { planSelectMenu, unreadRow } from "../ui/components.js";
 import { EMOJI } from "../ui/emojis.js";
 
 export const data = new SlashCommandBuilder()
@@ -74,7 +74,7 @@ export async function doMarkRead(
       plan_not_found: "Plan not found or doesn't belong to you.",
       plan_complete: "This plan is already complete. Start a new one with `/plan create`!",
     };
-    await (interaction as any).editReply({
+    await interaction.editReply({
       embeds: [errorEmbed(messages[result.reason] ?? "Couldn't mark that as read. Try again.")],
     });
     return;
@@ -84,7 +84,7 @@ export async function doMarkRead(
   const plan = await getPlan(planId, discordId);
   if (!plan) return;
 
-  await (interaction as any).editReply({
+  await interaction.editReply({
     embeds: [
       markReadSuccessEmbed(plan, result.newStreak, result.isComplete),
     ],
