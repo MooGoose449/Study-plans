@@ -1,0 +1,348 @@
+artifacts/api-server/src/bot/commands/read.ts‎
++1
+-1
+Lines changed: 1 addition & 1 deletion
+Original file line number	Diff line number	Diff line change
+@@ -75,7 +75,7 @@ export async function doMarkRead(
+      plan_complete: "This plan is already complete. Start a new one with `/plan create`!",
+    };
+    await (interaction as any).editReply({
+      embeds: [errorEmbed(messages[result.reason] ?? "Something went wrong.")],
+      embeds: [errorEmbed(messages[result.reason] ?? "Couldn't mark that as read — try again.")],
+    });
+    return;
+  }
+‎artifacts/api-server/src/bot/events/interactionCreate.ts‎
++2
+-2
+Lines changed: 2 additions & 2 deletions
+Original file line number	Diff line number	Diff line change
+@@ -13,7 +13,7 @@ export async function onInteractionCreate(
+    if (!command) {
+      logger.warn({ commandName: interaction.commandName }, "Unknown slash command");
+      await interaction.reply({
+        content: "Unknown command. Please try again.",
+        content: "That command isn't recognized — try again.",
+      });
+      return;
+    }
+@@ -26,7 +26,7 @@ export async function onInteractionCreate(
+        "Error executing command",
+      );
+
+      const errorMsg = { content: "Something went wrong. Please try again."};
+      const errorMsg = { content: "Something went wrong running that command — try again." };
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp(errorMsg);
+      } else {
+‎artifacts/api-server/src/bot/interactions/buttons.ts‎
++3
+-3
+Lines changed: 3 additions & 3 deletions
+Original file line number	Diff line number	Diff line change
+@@ -56,7 +56,7 @@ export async function handleButton(
+
+    default:
+      await interaction.reply({
+        embeds: [errorEmbed("Unknown action. Please try the command again.")],
+        embeds: [errorEmbed("That button is no longer active — try the command again.")],
+      });
+  }
+}
+@@ -82,7 +82,7 @@ async function handleMarkRead(
+      plan_complete: "This plan is already complete!",
+    };
+    await interaction.followUp({
+      embeds: [errorEmbed(messages[result.reason] ?? "Something went wrong.")],
+      embeds: [errorEmbed(messages[result.reason] ?? "Couldn't mark that as read — try again.")],
+    });
+    return;
+  }
+@@ -110,7 +110,7 @@ async function handleMarkUnread(
+      embeds: [errorEmbed(
+        result.reason === "not_read_today"
+          ? "Nothing to undo — today's reading was already removed or not marked yet."
+          : "Something went wrong.",
+          : "Couldn't undo that reading — try again.",
+      )],
+    });
+    return;
+‎artifacts/api-server/src/bot/interactions/index.ts‎
++1
+-1
+Lines changed: 1 addition & 1 deletion
+Original file line number	Diff line number	Diff line change
+@@ -28,7 +28,7 @@ export async function handleInteraction(
+        const replyFn = interaction.reply.bind(interaction) as Function;
+        if ("replied" in interaction && !(interaction as any).replied) {
+          await replyFn({
+            content: "An unexpected error occurred. Please try again.",
+            content: "Something went wrong — try the command again.",
+          });
+        }
+      }
+‎artifacts/api-server/src/bot/interactions/modals.ts‎
++15
+-5
+Lines changed: 15 additions & 5 deletions
+Original file line number	Diff line number	Diff line change
+@@ -59,7 +59,7 @@ export async function handleModal(
+
+    default:
+      await interaction.reply({
+        embeds: [errorEmbed("Unknown form submission.")],
+        embeds: [errorEmbed("That form is no longer active — try the command again.")],
+      });
+  }
+}
+@@ -188,15 +188,25 @@ async function handlePlanEdit(
+      });
+      return;
+    }
+    await updatePlan(planId, discordId, { unitsPerDay: n });
+    // Switching to daily pace — clear goal date so both can't coexist
+    await updatePlan(planId, discordId, { unitsPerDay: n, goalDate: null });
+  } else if (field === "goal_date") {
+    if (value && !isValidDate(value)) {
+    if (!isValidDate(value)) {
+      await interaction.reply({
+        embeds: [errorEmbed("Invalid date format. Use YYYY-MM-DD.")],
+        embeds: [errorEmbed("Invalid date format. Use YYYY-MM-DD, e.g. `2025-12-31`.")],
+      });
+      return;
+    }
+    await updatePlan(planId, discordId, { goalDate: value || null });
+    const days = daysBetween(getTodayUTC(), value);
+    if (days < 1) {
+      await interaction.reply({
+        embeds: [errorEmbed("Goal date must be in the future.")],
+      });
+      return;
+    }
+    // Switching to goal-date pace — compute daily units and store both
+    const unitsPerDay = Math.max(1, Math.ceil(plan.totalItems / days));
+    await updatePlan(planId, discordId, { goalDate: value, unitsPerDay });
+  }
+
+  const updated = await getPlan(planId, discordId);
+‎artifacts/api-server/src/bot/interactions/selectMenus.ts‎
++66
+-3
+Lines changed: 66 additions & 3 deletions
+Original file line number	Diff line number	Diff line change
+@@ -20,6 +20,9 @@ import {
+  scriptureSelectMenu,
+  conferenceSelectMenu,
+  planEditFieldMenu,
+  planEditPaceTypeMenu,
+  planPaceTypeMenu,
+  unreadRow,
+} from "../ui/components.js";
+import { getTodayUTC } from "../utils/index.js";
+import { EMOJI } from "../ui/emojis.js";
+@@ -64,6 +67,10 @@ export async function handleSelectMenu(
+      await handlePlanEditField(interaction, discordId, Number(params[0]));
+      break;
+
+    case "plan_edit_pace_type":
+      await handlePlanEditPaceTypeSelect(interaction, discordId, Number(params[0]));
+      break;
+    case "plan_delete_select":
+      await handlePlanDeleteSelect(interaction, discordId);
+      break;
+@@ -74,7 +81,7 @@ export async function handleSelectMenu(
+
+    default:
+      await interaction.reply({
+        embeds: [errorEmbed("Unknown selection. Please try again.")],
+        embeds: [errorEmbed("That menu is no longer active — try the command again.")],
+      });
+  }
+}
+@@ -245,12 +252,22 @@ async function handlePlanEditField(
+    const newActive = !plan.isActive;
+    await updatePlan(planId, discordId, { isActive: newActive });
+    await interaction.update({
+      embeds: [errorEmbed(`Plan is now ${newActive ? "active" : "paused"}.`)],
+      embeds: [planDetailEmbed(plan)],
+      content: `Plan is now **${newActive ? "active ▶️" : "paused ⏸️"}**.`,
+      components: [],
+    });
+    return;
+  }
+
+  if (field === "pace") {
+    await interaction.update({
+      embeds: [],
+      content: "How would you like to pace your reading?",
+      components: [planEditPaceTypeMenu(planId)],
+    });
+    return;
+  }
+  // Show modal for text edits
+  const modal = new ModalBuilder()
+    .setCustomId(`mod:plan_edit:${planId}:${field}`)
+@@ -289,6 +306,52 @@ async function handlePlanEditField(
+  await interaction.showModal(modal);
+}
+
+async function handlePlanEditPaceTypeSelect(
+  interaction: StringSelectMenuInteraction,
+  discordId: string,
+  planId: number,
+) {
+  const mode = interaction.values[0] as "daily" | "dated";
+  const plan = await getPlan(planId, discordId);
+  if (!plan) {
+    await interaction.reply({ embeds: [errorEmbed("Plan not found.")] });
+    return;
+  }
+  const unitLabel = plan.sourceType === "scripture" ? "Chapters" : "Talks";
+  const modal = new ModalBuilder()
+    .setCustomId(`mod:plan_edit:${planId}:${mode === "daily" ? "units_per_day" : "goal_date"}`)
+    .setTitle(`${EMOJI.PENCIL} Edit Pace`);
+  if (mode === "daily") {
+    modal.addComponents(
+      new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("value")
+          .setLabel(`${unitLabel} per day`)
+          .setStyle(TextInputStyle.Short)
+          .setValue(String(plan.unitsPerDay))
+          .setRequired(true),
+      ),
+    );
+  } else {
+    modal.addComponents(
+      new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("value")
+          .setLabel("Goal completion date (YYYY-MM-DD)")
+          .setStyle(TextInputStyle.Short)
+          .setValue(plan.goalDate ?? "")
+          .setPlaceholder("2025-12-31")
+          .setRequired(true),
+      ),
+    );
+  }
+  await interaction.showModal(modal);
+}
+async function handlePlanDeleteSelect(
+  interaction: StringSelectMenuInteraction,
+  discordId: string,
+@@ -332,7 +395,7 @@ async function handleReadPlanSelect(
+      plan_complete: "This plan is already complete!",
+    };
+    await interaction.followUp({
+      embeds: [errorEmbed(messages[result.reason] ?? "Something went wrong.")],
+      embeds: [errorEmbed(messages[result.reason] ?? "Couldn't mark that as read — try again.")],
+    });
+    return;
+  }
+‎artifacts/api-server/src/bot/ui/components.ts‎
++31
+-26
+Lines changed: 31 additions & 26 deletions
+Original file line number	Diff line number	Diff line change
+@@ -81,7 +81,7 @@ export function planSelectMenu(
+): ActionRowBuilder<MessageActionRowComponentBuilder> {
+  const options = plans.map((p) =>
+    new StringSelectMenuOptionBuilder()
+      .setLabel(p.name)
+      .setLabel(`${p.name} (ID: ${p.id})`)
+      .setValue(String(p.id))
+      .setDescription(p.isComplete ? "Completed" : `${Math.round((p.currentPosition / p.totalItems) * 100)}% complete`),
+  );
+@@ -101,38 +101,21 @@ export function planEditFieldMenu(planId: number): ActionRowBuilder<MessageActio
+    .setCustomId(`sel:plan_edit_field:${planId}`)
+    .setPlaceholder("What would you like to edit?")
+    .addOptions(
+      new StringSelectMenuOptionBuilder().setLabel("Plan Name").setValue("name"),
+      new StringSelectMenuOptionBuilder().setLabel("Units per Day").setValue("units_per_day"),
+      new StringSelectMenuOptionBuilder().setLabel("Goal Date").setValue("goal_date"),
+      new StringSelectMenuOptionBuilder().setLabel("Pause / Unpause").setValue("toggle_active"),
+      new StringSelectMenuOptionBuilder().setLabel("Set / Edit Reminder").setValue("reminder_set").setEmoji(EMOJI.BELL),
+      new StringSelectMenuOptionBuilder().setLabel("Disable Reminder").setValue("reminder_disable").setEmoji(EMOJI.BELL_OFF),
+      new StringSelectMenuOptionBuilder().setLabel("Plan Name").setValue("name").setEmoji(EMOJI.PENCIL),
+      new StringSelectMenuOptionBuilder().setLabel("Pace").setValue("pace").setDescription("Change chapters/talks per day or switch to a goal date").setEmoji(EMOJI.CALENDAR),
+      new StringSelectMenuOptionBuilder().setLabel("Pause / Unpause").setValue("toggle_active").setEmoji(EMOJI.INFO),
+    );
+  return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(menu);
+}
+
+/** Button row shown after plan creation offering to set up a reminder. */
+export function setupReminderRow(): ActionRowBuilder<MessageActionRowComponentBuilder> {
+  return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId("btn:setup_reminder")
+      .setLabel("Set up Daily Reminder")
+      .setStyle(ButtonStyle.Primary)
+      .setEmoji(EMOJI.BELL),
+    new ButtonBuilder()
+      .setCustomId("btn:skip_reminder")
+      .setLabel("Skip for now")
+      .setStyle(ButtonStyle.Secondary),
+  );
+}
+// ── Mark as Read buttons ─────────────────────────────────────────────────────
+
+export function markReadButton(planId: number): ButtonBuilder {
+  return new ButtonBuilder()
+    .setCustomId(`btn:mark_read:${planId}`)
+    .setLabel("Mark as Read")
+    .setStyle(ButtonStyle.Success);
+    .setStyle(ButtonStyle.Success)
+    .setEmoji(EMOJI.COMPLETE);
+}
+
+export function viewTodayButton(): ButtonBuilder {
+@@ -147,7 +130,8 @@ export function snoozeButton(planId: number, minutes: number): ButtonBuilder {
+  return new ButtonBuilder()
+    .setCustomId(`btn:snooze:${planId}:${minutes}`)
+    .setLabel(`Snooze ${minutes}m`)
+    .setStyle(ButtonStyle.Secondary);
+    .setStyle(ButtonStyle.Secondary)
+    .setEmoji(EMOJI.CLOCK);
+}
+
+/** Build a row with Mark as Read + View Today buttons for a plan. */
+@@ -195,11 +179,13 @@ export function confirmRow(
+    new ButtonBuilder()
+      .setCustomId(confirmId)
+      .setLabel(confirmLabel)
+      .setStyle(ButtonStyle.Success),
+      .setStyle(ButtonStyle.Success)
+      .setEmoji(EMOJI.CHECK),
+    new ButtonBuilder()
+      .setCustomId(cancelId)
+      .setLabel(cancelLabel)
+      .setStyle(ButtonStyle.Secondary),
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji(EMOJI.CROSS),
+  );
+}
+
+@@ -227,6 +213,25 @@ export function planPaceTypeMenu(
+  return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(menu);
+}
+
+// ── Plan edit pace type select menu ─────────────────────────────────────────
+export function planEditPaceTypeMenu(planId: number): ActionRowBuilder<MessageActionRowComponentBuilder> {
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId(`sel:plan_edit_pace_type:${planId}`)
+    .setPlaceholder("How do you want to pace your reading?")
+    .addOptions(
+      new StringSelectMenuOptionBuilder()
+        .setLabel("Chapters / Talks per day")
+        .setValue("daily")
+        .setDescription("Set a fixed number to read each day"),
+      new StringSelectMenuOptionBuilder()
+        .setLabel("By goal date")
+        .setValue("dated")
+        .setDescription("Pick a finish date and we'll calculate the daily pace"),
+    );
+  return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(menu);
+}
+// ── Unread (undo) button ─────────────────────────────────────────────────────
+
+export function unreadRow(planId: number): ActionRowBuilder<MessageActionRowComponentBuilder> {
