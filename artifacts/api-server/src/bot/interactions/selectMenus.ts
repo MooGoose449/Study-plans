@@ -115,7 +115,7 @@ async function handleScriptureSourceSelect(
   }
 
   const totalItems = getSourceTotalItems("scripture", sourceId);
-  await showPlanCreationModal(interaction, "scripture", sourceId, work.name, totalItems);
+  await showPaceTypeMenu(interaction, "scripture", sourceId, totalItems);
 }
 
 async function handleConferenceSourceSelect(
@@ -129,7 +129,7 @@ async function handleConferenceSourceSelect(
   }
 
   const totalItems = getSourceTotalItems("conference", sourceId);
-  await showPlanCreationModal(interaction, "conference", sourceId, conf.name, totalItems);
+  await showPaceTypeMenu(interaction, "conference", sourceId, totalItems);
 }
 
 async function showPaceTypeMenu(
