@@ -81,7 +81,7 @@ export function planSelectMenu(
 ): ActionRowBuilder<MessageActionRowComponentBuilder> {
   const options = plans.map((p) =>
     new StringSelectMenuOptionBuilder()
-      .setLabel(p.name)
+      .setLabel(`${p.name} (ID: ${p.id})`)
       .setValue(String(p.id))
       .setDescription(p.isComplete ? "Completed" : `${Math.round((p.currentPosition / p.totalItems) * 100)}% complete`),
   );
@@ -101,29 +101,11 @@ export function planEditFieldMenu(planId: number): ActionRowBuilder<MessageActio
     .setCustomId(`sel:plan_edit_field:${planId}`)
     .setPlaceholder("What would you like to edit?")
     .addOptions(
-      new StringSelectMenuOptionBuilder().setLabel("Plan Name").setValue("name"),
-      new StringSelectMenuOptionBuilder().setLabel("Units per Day").setValue("units_per_day"),
-      new StringSelectMenuOptionBuilder().setLabel("Goal Date").setValue("goal_date"),
-      new StringSelectMenuOptionBuilder().setLabel("Pause / Unpause").setValue("toggle_active"),
-      new StringSelectMenuOptionBuilder().setLabel("Set / Edit Reminder").setValue("reminder_set").setEmoji(EMOJI.BELL),
-      new StringSelectMenuOptionBuilder().setLabel("Disable Reminder").setValue("reminder_disable").setEmoji(EMOJI.BELL_OFF),
+      new StringSelectMenuOptionBuilder().setLabel("Plan Name").setValue("name").setEmoji(EMOJI.PENCIL),
+      new StringSelectMenuOptionBuilder().setLabel("Pace").setValue("pace").setDescription("Change chapters/talks per day or switch to a goal date").setEmoji(EMOJI.CALENDAR),
+      new StringSelectMenuOptionBuilder().setLabel("Pause / Unpause").setValue("toggle_active").setEmoji(EMOJI.INFO),
     );
   return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(menu);
-}
-
-/** Button row shown after plan creation offering to set up a reminder. */
-export function setupReminderRow(): ActionRowBuilder<MessageActionRowComponentBuilder> {
-  return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
-    new ButtonBuilder()
-      .setCustomId("btn:setup_reminder")
-      .setLabel("Set up Daily Reminder")
-      .setStyle(ButtonStyle.Primary)
-      .setEmoji(EMOJI.BELL),
-    new ButtonBuilder()
-      .setCustomId("btn:skip_reminder")
-      .setLabel("Skip for now")
-      .setStyle(ButtonStyle.Secondary),
-  );
 }
 
 // ── Mark as Read buttons ─────────────────────────────────────────────────────
@@ -132,7 +114,8 @@ export function markReadButton(planId: number): ButtonBuilder {
   return new ButtonBuilder()
     .setCustomId(`btn:mark_read:${planId}`)
     .setLabel("Mark as Read")
-    .setStyle(ButtonStyle.Success);
+    .setStyle(ButtonStyle.Success)
+    .setEmoji(EMOJI.COMPLETE);
 }
 
 export function viewTodayButton(): ButtonBuilder {
@@ -147,7 +130,8 @@ export function snoozeButton(planId: number, minutes: number): ButtonBuilder {
   return new ButtonBuilder()
     .setCustomId(`btn:snooze:${planId}:${minutes}`)
     .setLabel(`Snooze ${minutes}m`)
-    .setStyle(ButtonStyle.Secondary);
+    .setStyle(ButtonStyle.Secondary)
+    .setEmoji(EMOJI.CLOCK);
 }
 
 /** Build a row with Mark as Read + View Today buttons for a plan. */
@@ -195,11 +179,13 @@ export function confirmRow(
     new ButtonBuilder()
       .setCustomId(confirmId)
       .setLabel(confirmLabel)
-      .setStyle(ButtonStyle.Success),
+      .setStyle(ButtonStyle.Success)
+      .setEmoji(EMOJI.CHECK),
     new ButtonBuilder()
       .setCustomId(cancelId)
       .setLabel(cancelLabel)
-      .setStyle(ButtonStyle.Secondary),
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji(EMOJI.CROSS),
   );
 }
 
@@ -223,6 +209,25 @@ export function planPaceTypeMenu(
         .setLabel("By goal date")
         .setValue("dated")
         .setDescription("Pick a finish date — we'll calculate your daily pace"),
+    );
+  return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(menu);
+}
+
+// ── Plan edit pace type select menu ─────────────────────────────────────────
+
+export function planEditPaceTypeMenu(planId: number): ActionRowBuilder<MessageActionRowComponentBuilder> {
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId(`sel:plan_edit_pace_type:${planId}`)
+    .setPlaceholder("How do you want to pace your reading?")
+    .addOptions(
+      new StringSelectMenuOptionBuilder()
+        .setLabel("Chapters / Talks per day")
+        .setValue("daily")
+        .setDescription("Set a fixed number to read each day"),
+      new StringSelectMenuOptionBuilder()
+        .setLabel("By goal date")
+        .setValue("dated")
+        .setDescription("Pick a finish date and we'll calculate the daily pace"),
     );
   return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(menu);
 }

@@ -20,6 +20,9 @@ import {
   scriptureSelectMenu,
   conferenceSelectMenu,
   planEditFieldMenu,
+  planEditPaceTypeMenu,
+  planPaceTypeMenu,
+  unreadRow,
 } from "../ui/components.js";
 import { getTodayUTC } from "../utils/index.js";
 import { EMOJI } from "../ui/emojis.js";
@@ -64,6 +67,10 @@ export async function handleSelectMenu(
       await handlePlanEditField(interaction, discordId, Number(params[0]));
       break;
 
+    case "plan_edit_pace_type":
+      await handlePlanEditPaceTypeSelect(interaction, discordId, Number(params[0]));
+      break;
+
     case "plan_delete_select":
       await handlePlanDeleteSelect(interaction, discordId);
       break;
@@ -74,7 +81,7 @@ export async function handleSelectMenu(
 
     default:
       await interaction.reply({
-        embeds: [errorEmbed("Unknown selection. Please try again.")],
+        embeds: [errorEmbed("That menu is no longer active — try the command again.")],
       });
   }
 }
@@ -245,8 +252,18 @@ async function handlePlanEditField(
     const newActive = !plan.isActive;
     await updatePlan(planId, discordId, { isActive: newActive });
     await interaction.update({
-      embeds: [errorEmbed(`Plan is now ${newActive ? "active" : "paused"}.`)],
+      embeds: [planDetailEmbed(plan)],
+      content: `Plan is now **${newActive ? "active ▶️" : "paused ⏸️"}**.`,
       components: [],
+    });
+    return;
+  }
+
+  if (field === "pace") {
+    await interaction.update({
+      embeds: [],
+      content: "How would you like to pace your reading?",
+      components: [planEditPaceTypeMenu(planId)],
     });
     return;
   }
@@ -285,6 +302,52 @@ async function handlePlanEditField(
   modal.addComponents(
     new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(input),
   );
+
+  await interaction.showModal(modal);
+}
+
+async function handlePlanEditPaceTypeSelect(
+  interaction: StringSelectMenuInteraction,
+  discordId: string,
+  planId: number,
+) {
+  const mode = interaction.values[0] as "daily" | "dated";
+  const plan = await getPlan(planId, discordId);
+  if (!plan) {
+    await interaction.reply({ embeds: [errorEmbed("Plan not found.")] });
+    return;
+  }
+
+  const unitLabel = plan.sourceType === "scripture" ? "Chapters" : "Talks";
+
+  const modal = new ModalBuilder()
+    .setCustomId(`mod:plan_edit:${planId}:${mode === "daily" ? "units_per_day" : "goal_date"}`)
+    .setTitle(`${EMOJI.PENCIL} Edit Pace`);
+
+  if (mode === "daily") {
+    modal.addComponents(
+      new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("value")
+          .setLabel(`${unitLabel} per day`)
+          .setStyle(TextInputStyle.Short)
+          .setValue(String(plan.unitsPerDay))
+          .setRequired(true),
+      ),
+    );
+  } else {
+    modal.addComponents(
+      new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("value")
+          .setLabel("Goal completion date (YYYY-MM-DD)")
+          .setStyle(TextInputStyle.Short)
+          .setValue(plan.goalDate ?? "")
+          .setPlaceholder("2025-12-31")
+          .setRequired(true),
+      ),
+    );
+  }
 
   await interaction.showModal(modal);
 }
@@ -332,7 +395,7 @@ async function handleReadPlanSelect(
       plan_complete: "This plan is already complete!",
     };
     await interaction.followUp({
-      embeds: [errorEmbed(messages[result.reason] ?? "Something went wrong.")],
+      embeds: [errorEmbed(messages[result.reason] ?? "Couldn't mark that as read — try again.")],
     });
     return;
   }

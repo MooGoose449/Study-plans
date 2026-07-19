@@ -59,7 +59,7 @@ export async function handleModal(
 
     default:
       await interaction.reply({
-        embeds: [errorEmbed("Unknown form submission.")],
+        embeds: [errorEmbed("That form is no longer active — try the command again.")],
       });
   }
 }
@@ -188,15 +188,25 @@ async function handlePlanEdit(
       });
       return;
     }
-    await updatePlan(planId, discordId, { unitsPerDay: n });
+    // Switching to daily pace — clear goal date so both can't coexist
+    await updatePlan(planId, discordId, { unitsPerDay: n, goalDate: null });
   } else if (field === "goal_date") {
-    if (value && !isValidDate(value)) {
+    if (!isValidDate(value)) {
       await interaction.reply({
-        embeds: [errorEmbed("Invalid date format. Use YYYY-MM-DD.")],
+        embeds: [errorEmbed("Invalid date format. Use YYYY-MM-DD, e.g. `2025-12-31`.")],
       });
       return;
     }
-    await updatePlan(planId, discordId, { goalDate: value || null });
+    const days = daysBetween(getTodayUTC(), value);
+    if (days < 1) {
+      await interaction.reply({
+        embeds: [errorEmbed("Goal date must be in the future.")],
+      });
+      return;
+    }
+    // Switching to goal-date pace — compute daily units and store both
+    const unitsPerDay = Math.max(1, Math.ceil(plan.totalItems / days));
+    await updatePlan(planId, discordId, { goalDate: value, unitsPerDay });
   }
 
   const updated = await getPlan(planId, discordId);
