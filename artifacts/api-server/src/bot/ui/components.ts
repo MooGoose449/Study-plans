@@ -208,7 +208,7 @@ export function planPaceTypeMenu(
       new StringSelectMenuOptionBuilder()
         .setLabel("By goal date")
         .setValue("dated")
-        .setDescription("Pick a finish date — we'll calculate your daily pace"),
+        .setDescription("Pick a finish date and we will calculate your daily pace"),
     );
   return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(menu);
 }

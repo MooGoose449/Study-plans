@@ -13,7 +13,7 @@ export async function onInteractionCreate(
     if (!command) {
       logger.warn({ commandName: interaction.commandName }, "Unknown slash command");
       await interaction.reply({
-        content: "That command isn't recognized — try again.",
+        content: "That command isn't recognized. Try again.",
       });
       return;
     }
@@ -26,7 +26,7 @@ export async function onInteractionCreate(
         "Error executing command",
       );
 
-      const errorMsg = { content: "Something went wrong running that command — try again." };
+      const errorMsg = { content: "Something went wrong running that command. Try again." };
       if (interaction.replied || interaction.deferred) {
         await interaction.followUp(errorMsg);
       } else {

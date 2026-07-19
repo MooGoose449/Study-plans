@@ -56,7 +56,7 @@ export async function handleButton(
 
     default:
       await interaction.reply({
-        embeds: [errorEmbed("That button is no longer active — try the command again.")],
+        embeds: [errorEmbed("That button is no longer active. Try the command again.")],
       });
   }
 }
@@ -82,7 +82,7 @@ async function handleMarkRead(
       plan_complete: "This plan is already complete!",
     };
     await interaction.followUp({
-      embeds: [errorEmbed(messages[result.reason] ?? "Couldn't mark that as read — try again.")],
+      embeds: [errorEmbed(messages[result.reason] ?? "Couldn't mark that as read. Try again.")],
     });
     return;
   }
@@ -109,8 +109,8 @@ async function handleMarkUnread(
     await interaction.followUp({
       embeds: [errorEmbed(
         result.reason === "not_read_today"
-          ? "Nothing to undo — today's reading was already removed or not marked yet."
-          : "Couldn't undo that reading — try again.",
+          ? "Nothing to undo. Today's reading was already removed or not marked yet."
+          : "Couldn't undo that reading. Try again.",
       )],
     });
     return;

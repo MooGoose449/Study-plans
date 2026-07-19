@@ -59,7 +59,7 @@ export async function handleModal(
 
     default:
       await interaction.reply({
-        embeds: [errorEmbed("That form is no longer active — try the command again.")],
+        embeds: [errorEmbed("That form is no longer active. Try the command again.")],
       });
   }
 }

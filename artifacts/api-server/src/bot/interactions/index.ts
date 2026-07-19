@@ -28,7 +28,7 @@ export async function handleInteraction(
         const replyFn = interaction.reply.bind(interaction) as Function;
         if ("replied" in interaction && !(interaction as any).replied) {
           await replyFn({
-            content: "Something went wrong — try the command again.",
+            content: "Something went wrong. Try the command again.",
           });
         }
       }

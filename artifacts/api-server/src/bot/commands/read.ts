@@ -75,7 +75,7 @@ export async function doMarkRead(
       plan_complete: "This plan is already complete. Start a new one with `/plan create`!",
     };
     await (interaction as any).editReply({
-      embeds: [errorEmbed(messages[result.reason] ?? "Couldn't mark that as read — try again.")],
+      embeds: [errorEmbed(messages[result.reason] ?? "Couldn't mark that as read. Try again.")],
     });
     return;
   }

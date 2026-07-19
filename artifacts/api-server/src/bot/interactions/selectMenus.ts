@@ -55,6 +55,10 @@ export async function handleSelectMenu(
       await handleConferenceSourceSelect(interaction);
       break;
 
+    case "plan_pace_type":
+      await handlePlanPaceTypeSelect(interaction);
+      break;
+
     case "plan_view":
       await handlePlanView(interaction, discordId);
       break;
@@ -81,7 +85,7 @@ export async function handleSelectMenu(
 
     default:
       await interaction.reply({
-        embeds: [errorEmbed("That menu is no longer active — try the command again.")],
+        embeds: [errorEmbed("That menu is no longer active. Try the command again.")],
       });
   }
 }
@@ -395,7 +399,7 @@ async function handleReadPlanSelect(
       plan_complete: "This plan is already complete!",
     };
     await interaction.followUp({
-      embeds: [errorEmbed(messages[result.reason] ?? "Couldn't mark that as read — try again.")],
+      embeds: [errorEmbed(messages[result.reason] ?? "Couldn't mark that as read. Try again.")],
     });
     return;
   }
