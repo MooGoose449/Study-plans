@@ -24,13 +24,12 @@ export async function handleInteraction(
 
     // Attempt to send an error response if the interaction is still replyable
     try {
-      if ("reply" in interaction && typeof interaction.reply === "function") {
-        const replyFn = interaction.reply.bind(interaction) as Function;
-        if ("replied" in interaction && !(interaction as any).replied) {
-          await replyFn({
-            content: "Something went wrong. Try the command again.",
-          });
-        }
+      const i = interaction as any;
+      const payload = { content: "Something went wrong. Try the command again." };
+      if (i.replied || i.deferred) {
+        await i.followUp(payload);
+      } else if (typeof i.reply === "function") {
+        await i.reply(payload);
       }
     } catch {
       // Best-effort only

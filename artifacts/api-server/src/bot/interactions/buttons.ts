@@ -1,7 +1,6 @@
 import type { ButtonInteraction, Client } from "discord.js";
-import { markAsRead } from "../services/readService.js";
-import { getPlan, deletePlan, updatePlan } from "../services/planService.js";
-import { getActivePlans } from "../services/planService.js";
+import { markAsRead, markAsUnread } from "../services/readService.js";
+import { getPlan, deletePlan, updatePlan, getActivePlans, hasReadToday } from "../services/planService.js";
 import { getUserStats } from "../services/statsService.js";
 import { upsertUser } from "../services/userService.js";
 import {
@@ -10,8 +9,7 @@ import {
   successEmbed,
   todayPlanEmbed,
 } from "../ui/embeds.js";
-import { todayActionRow } from "../ui/components.js";
-import { hasReadToday } from "../services/planService.js";
+import { todayActionRow, unreadRow } from "../ui/components.js";
 import { getTodayUTC } from "../utils/index.js";
 import { EMOJI } from "../ui/emojis.js";
 
@@ -88,7 +86,10 @@ async function handleMarkRead(
   }
 
   const plan = await getPlan(planId, discordId);
-  if (!plan) return;
+  if (!plan) {
+    await interaction.followUp({ embeds: [errorEmbed("Plan not found.")] });
+    return;
+  }
 
   await interaction.followUp({
     embeds: [markReadSuccessEmbed(plan, result.newStreak, result.isComplete)],
@@ -141,7 +142,7 @@ async function handleViewToday(
 
   const embeds = [];
   const rows = [];
-  for (const plan of plans.slice(0, 5)) {
+  for (const plan of plans.slice(0, 10)) {
     const alreadyRead = await hasReadToday(plan.id, today);
     embeds.push(todayPlanEmbed(plan, alreadyRead, streak));
     if (!plan.isComplete) rows.push(todayActionRow(plan.id, alreadyRead));

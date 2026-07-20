@@ -16,7 +16,7 @@ export const data = new SlashCommandBuilder()
 export async function execute(
   interaction: ChatInputCommandInteraction,
 ): Promise<void> {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply();
 
   const discordId = interaction.user.id;
   await upsertUser(discordId, interaction.user.username);
@@ -53,7 +53,7 @@ export async function doMarkUnread(
       not_read: "This plan hasn't been marked as read today.",
       plan_not_found: "Plan not found or doesn't belong to you.",
     };
-    await (interaction as any).editReply({
+    await interaction.editReply({
       embeds: [errorEmbed(messages[result.reason] ?? "Something went wrong.")],
     });
     return;
@@ -62,7 +62,7 @@ export async function doMarkUnread(
   const plan = await getPlan(planId, discordId);
   if (!plan) return;
 
-  await (interaction as any).editReply({
+  await interaction.editReply({
     embeds: [
       successEmbed(
         `${EMOJI.UNDO} Marked as unread. Your progress has been restored to **${plan.currentPosition}** units.`,
