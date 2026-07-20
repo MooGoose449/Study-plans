@@ -34,43 +34,7 @@ A Discord bot that helps members of The Church of Jesus Christ of Latter-day Sai
 | `/reminder disable` | Turn off reminders |
 | `/streak [user]` | View current and longest streak |
 | `/stats [user]` | Full reading statistics |
-| `/leaderboard` | Top 10 leaderboard. Requires `type` (`current` or `longest`) and `scope` (`server` or `global`) |
-
----
-
-## Setup
-
-### Environment Variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `DISCORD_TOKEN` | Yes | Bot token from Discord Developer Portal |
-| `DISCORD_CLIENT_ID` | Yes | Application ID from Discord Developer Portal |
-| `NEON_DATABASE_URL` | Yes | PostgreSQL connection string (Neon recommended) |
-| `SESSION_SECRET` | Yes | Secret string for session signing |
-| `RENDER_EXTERNAL_URL` | Render only | Set automatically by Render; used for keep-alive self-ping |
-| `DISCORD_MEMBERS_INTENT` | Optional | Set to `true` to enable GuildMembers privileged intent (needed for server-scope leaderboard member lookups) |
-| `LEADERBOARD_CACHE_TTL` | Optional | Leaderboard cache lifetime in seconds (default: 60) |
-| `MEMBER_FETCH_TIMEOUT_MS` | Optional | Timeout for guild member fetches in ms (default: 3000) |
-
-### Running Locally
-
-```bash
-pnpm install
-pnpm --filter @workspace/api-server run dev
-```
-
-### Deploying to Render
-
-1. Push to GitHub. Render auto-deploys from `main`.
-2. Set all required environment variables in the Render dashboard.
-3. Build command: `pnpm run build` (run inside `artifacts/api-server`).
-4. After first deploy, run the deploy-commands script once to register slash commands with Discord.
-
----
-
-## Architecture
-
+| `/leaderboard` | Top 10 leaderboard. Requires `type` (`current` or `longest`) and `scope` (`server` or `global`) 
 - Single Node.js process: Discord.js v14 bot + minimal Express server (health check at `GET /api/healthz`)
 - TypeScript, built with esbuild via `build.mjs`
 - Database: Neon PostgreSQL via Drizzle ORM. `NEON_DATABASE_URL` takes priority over `DATABASE_URL`
