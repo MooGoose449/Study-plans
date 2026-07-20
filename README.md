@@ -16,8 +16,6 @@ A Discord bot that helps members of The Church of Jesus Christ of Latter-day Sai
 
 ## Commands
 
-> After changing slash command options, re-register with Discord by running the deploy-commands script.
-
 | Command | Description |
 |---|---|
 | `/help` | Show all commands and tips |
