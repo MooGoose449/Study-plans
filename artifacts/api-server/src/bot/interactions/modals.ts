@@ -6,6 +6,7 @@ import {
   updatePlan,
   deletePlan,
   getSourceTotalItems,
+  getActivePlans,
 } from "../services/planService.js";
 import { upsertReminderSettings } from "../services/reminderService.js";
 import { refreshUserReminder } from "../scheduler/index.js";
@@ -81,6 +82,15 @@ async function handlePlanCreate(
     string,
     "daily" | "dated",
   ];
+
+  // Enforce max 10 active plans per user
+  const activePlans = await getActivePlans(discordId);
+  if (activePlans.length >= 10) {
+    await interaction.reply({
+      embeds: [errorEmbed("You already have 10 active plans. Complete or delete one before creating another.")],
+    });
+    return;
+  }
 
   const name = interaction.fields.getTextInputValue("plan_name").trim();
   const today = getTodayUTC();
