@@ -35,8 +35,3 @@ A Discord bot that helps members of The Church of Jesus Christ of Latter-day Sai
 | `/streak [user]` | View current and longest streak |
 | `/stats [user]` | Full reading statistics |
 | `/leaderboard` | Top 10 leaderboard. Requires `type` (`current` or `longest`) and `scope` (`server` or `global`) 
-- Single Node.js process: Discord.js v14 bot + minimal Express server (health check at `GET /api/healthz`)
-- TypeScript, built with esbuild via `build.mjs`
-- Database: Neon PostgreSQL via Drizzle ORM. `NEON_DATABASE_URL` takes priority over `DATABASE_URL`
-- Keep-alive: HTTP self-ping + `SELECT 1` every 5 minutes using `RENDER_EXTERNAL_URL` on Render
-- pnpm monorepo under `artifacts/api-server`
