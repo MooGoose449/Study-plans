@@ -30,11 +30,6 @@ export async function execute(
     return;
   }
 
-  if (activePlans.length === 1) {
-    await doMarkUnread(interaction, discordId, activePlans[0]!.id);
-    return;
-  }
-
   await interaction.editReply({
     content: `${EMOJI.UNDO} Which plan do you want to mark as unread?`,
     components: [planSelectMenu(activePlans, "sel:read_plan_select:unread")],

@@ -14,8 +14,8 @@ import {
   updatePlan,
   getSourceTotalItems,
 } from "../services/planService.js";
-import { markAsRead } from "../services/readService.js";
-import { markReadSuccessEmbed, planDetailEmbed, errorEmbed, selectSourceEmbed } from "../ui/embeds.js";
+import { markAsRead, markAsUnread } from "../services/readService.js";
+import { markReadSuccessEmbed, planDetailEmbed, errorEmbed, selectSourceEmbed, successEmbed } from "../ui/embeds.js";
 import {
   scriptureSelectMenu,
   conferenceSelectMenu,
@@ -24,7 +24,7 @@ import {
   planPaceTypeMenu,
   unreadRow,
 } from "../ui/components.js";
-import { getTodayUTC } from "../utils/index.js";
+import { getTodayUTC, formatDisplayDate } from "../utils/index.js";
 import { EMOJI } from "../ui/emojis.js";
 import { STANDARD_WORKS } from "../metadata/scriptures.js";
 import { CONFERENCES } from "../metadata/conferences.js";
@@ -80,7 +80,7 @@ export async function handleSelectMenu(
       break;
 
     case "read_plan_select":
-      await handleReadPlanSelect(interaction, discordId);
+      await handleReadPlanSelect(interaction, discordId, params[0]);
       break;
 
     default:
@@ -198,9 +198,9 @@ async function handlePlanPaceTypeSelect(interaction: StringSelectMenuInteraction
       new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
         new TextInputBuilder()
           .setCustomId("goal_date")
-          .setLabel("Goal completion date (YYYY-MM-DD)")
+          .setLabel("Goal completion date (DD-MM-YYYY)")
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder("2025-12-31")
+          .setPlaceholder("31-12-2025")
           .setRequired(true),
       ),
     );
@@ -297,9 +297,9 @@ async function handlePlanEditField(
   } else {
     input = new TextInputBuilder()
       .setCustomId("value")
-      .setLabel("Goal Date (YYYY-MM-DD, leave blank to remove)")
+      .setLabel("Goal Date (DD-MM-YYYY, leave blank to remove)")
       .setStyle(TextInputStyle.Short)
-      .setValue(plan.goalDate ?? "")
+      .setValue(plan.goalDate ? formatDisplayDate(plan.goalDate) : "")
       .setRequired(false);
   }
 
@@ -344,10 +344,10 @@ async function handlePlanEditPaceTypeSelect(
       new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
         new TextInputBuilder()
           .setCustomId("value")
-          .setLabel("Goal completion date (YYYY-MM-DD)")
+          .setLabel("Goal completion date (DD-MM-YYYY)")
           .setStyle(TextInputStyle.Short)
-          .setValue(plan.goalDate ?? "")
-          .setPlaceholder("2025-12-31")
+          .setValue(plan.goalDate ? formatDisplayDate(plan.goalDate) : "")
+          .setPlaceholder("31-12-2025")
           .setRequired(true),
       ),
     );
@@ -386,10 +386,42 @@ async function handlePlanDeleteSelect(
 async function handleReadPlanSelect(
   interaction: StringSelectMenuInteraction,
   discordId: string,
+  action?: string,
 ) {
   await interaction.deferUpdate();
 
   const planId = Number(interaction.values[0]);
+
+  if (action === "unread") {
+    const result = await markAsUnread(planId, discordId);
+    if (!result.success) {
+      await interaction.followUp({
+        embeds: [
+          errorEmbed(
+            result.reason === "not_read_today"
+              ? "This plan hasn't been marked as read today."
+              : "Plan not found.",
+          ),
+        ],
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const plan = await getPlan(planId, discordId);
+    if (!plan) return;
+    await interaction.editReply({
+      content: "",
+      embeds: [
+        successEmbed(
+          `↩️ Marked as unread. Your progress has been restored to **${plan.currentPosition}** units.`,
+        ),
+      ],
+      components: [],
+    });
+    return;
+  }
+
   const result = await markAsRead(planId, discordId);
 
   if (!result.success) {

@@ -81,7 +81,7 @@ export function planSelectMenu(
 ): ActionRowBuilder<MessageActionRowComponentBuilder> {
   const options = plans.map((p) =>
     new StringSelectMenuOptionBuilder()
-      .setLabel(`${p.name} (ID: ${p.id})`)
+      .setLabel(p.name)
       .setValue(String(p.id))
       .setDescription(p.isComplete ? "Completed" : `${Math.round((p.currentPosition / p.totalItems) * 100)}% complete`),
   );
@@ -101,9 +101,9 @@ export function planEditFieldMenu(planId: number): ActionRowBuilder<MessageActio
     .setCustomId(`sel:plan_edit_field:${planId}`)
     .setPlaceholder("What would you like to edit?")
     .addOptions(
-      new StringSelectMenuOptionBuilder().setLabel("Plan Name").setValue("name").setEmoji(EMOJI.PENCIL),
-      new StringSelectMenuOptionBuilder().setLabel("Pace").setValue("pace").setDescription("Change chapters/talks per day or switch to a goal date").setEmoji(EMOJI.CALENDAR),
-      new StringSelectMenuOptionBuilder().setLabel("Pause / Unpause").setValue("toggle_active").setEmoji(EMOJI.INFO),
+      new StringSelectMenuOptionBuilder().setLabel("Plan Name").setValue("name"),
+      new StringSelectMenuOptionBuilder().setLabel("Pace").setValue("pace").setDescription("Change chapters/talks per day or switch to a goal date"),
+      new StringSelectMenuOptionBuilder().setLabel("Pause / Unpause").setValue("toggle_active"),
     );
   return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(menu);
 }
@@ -114,8 +114,7 @@ export function markReadButton(planId: number): ButtonBuilder {
   return new ButtonBuilder()
     .setCustomId(`btn:mark_read:${planId}`)
     .setLabel("Mark as Read")
-    .setStyle(ButtonStyle.Success)
-    .setEmoji(EMOJI.COMPLETE);
+    .setStyle(ButtonStyle.Success);
 }
 
 export function viewTodayButton(): ButtonBuilder {
@@ -130,8 +129,7 @@ export function snoozeButton(planId: number, minutes: number): ButtonBuilder {
   return new ButtonBuilder()
     .setCustomId(`btn:snooze:${planId}:${minutes}`)
     .setLabel(`Snooze ${minutes}m`)
-    .setStyle(ButtonStyle.Secondary)
-    .setEmoji(EMOJI.CLOCK);
+    .setStyle(ButtonStyle.Secondary);
 }
 
 /** Build a row with Mark as Read + View Today buttons for a plan. */
@@ -179,13 +177,11 @@ export function confirmRow(
     new ButtonBuilder()
       .setCustomId(confirmId)
       .setLabel(confirmLabel)
-      .setStyle(ButtonStyle.Success)
-      .setEmoji(EMOJI.CHECK),
+      .setStyle(ButtonStyle.Success),
     new ButtonBuilder()
       .setCustomId(cancelId)
       .setLabel(cancelLabel)
-      .setStyle(ButtonStyle.Secondary)
-      .setEmoji(EMOJI.CROSS),
+      .setStyle(ButtonStyle.Secondary),
   );
 }
 

@@ -92,9 +92,28 @@ export function isValidTime(time: string): boolean {
   return /^([01]\d|2[0-3]):([0-5]\d)$/.test(time);
 }
 
-/** Validate a YYYY-MM-DD date string. */
+/** Validate a YYYY-MM-DD date string used internally by the database. */
 export function isValidDate(date: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(date) && !isNaN(Date.parse(date));
+}
+
+/**
+ * Convert a user-entered DD-MM-YYYY date to the database's YYYY-MM-DD format.
+ * Returns null when the input is missing or not a real calendar date.
+ */
+export function parseDisplayDate(date: string): string | null {
+  const match = /^(\d{2})-(\d{2})-(\d{4})$/.exec(date.trim());
+  if (!match) return null;
+
+  const [, day, month, year] = match;
+  const iso = `${year}-${month}-${day}`;
+  return isValidDate(iso) ? iso : null;
+}
+
+/** Format an internal YYYY-MM-DD date for users as DD-MM-YYYY. */
+export function formatDisplayDate(date: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  return match ? `${match[3]}-${match[2]}-${match[1]}` : date;
 }
 
 /** Validate a timezone string using Intl. */

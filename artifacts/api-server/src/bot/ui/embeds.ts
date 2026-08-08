@@ -11,7 +11,7 @@ import {
   estimateCompletionDate,
 } from "../services/planService.js";
 import type { LeaderboardEntry } from "../services/statsService.js";
-import { calcProgress, formatDaysOfWeek, ordinal } from "../utils/index.js";
+import { calcProgress, formatDaysOfWeek, ordinal, formatDisplayDate } from "../utils/index.js";
 import type { Conference } from "../metadata/conferences.js";
 import type { StandardWork } from "../metadata/scriptures.js";
 
@@ -88,7 +88,7 @@ export function planDetailEmbed(plan: StudyPlan): EmbedBuilder {
     );
 
   if (plan.goalDate) {
-    embed.addFields({ name: "Goal Date", value: plan.goalDate, inline: true });
+    embed.addFields({ name: "Goal Date", value: formatDisplayDate(plan.goalDate), inline: true });
   }
   if (est && !plan.isComplete) {
     embed.addFields({ name: "Est. Completion", value: est, inline: true });

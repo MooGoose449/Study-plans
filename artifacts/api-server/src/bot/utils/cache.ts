@@ -1,8 +1,12 @@
-import type { RedisClientType } from 'redis';
-
 type CacheBackend = {
   get: (key: string) => Promise<string | null>;
   set: (key: string, value: string, ttlSeconds?: number) => Promise<void>;
+};
+
+type RedisClientLike = {
+  get: (key: string) => Promise<string | null>;
+  setEx: (key: string, ttlSeconds: number, value: string) => Promise<unknown>;
+  set: (key: string, value: string) => Promise<unknown>;
 };
 
 class InMemoryCache implements CacheBackend {
@@ -27,7 +31,7 @@ class InMemoryCache implements CacheBackend {
 }
 
 class RedisCache implements CacheBackend {
-  constructor(private client: RedisClientType) {}
+  constructor(private client: RedisClientLike) {}
 
   async get(key: string): Promise<string | null> {
     const v = (await this.client.get(key)) as string | null;
@@ -51,7 +55,7 @@ let backend: CacheBackend | null = null;
 let cacheHits = 0;
 let cacheMisses = 0;
 
-export function initCache(redisClient?: RedisClientType) {
+export function initCache(redisClient?: RedisClientLike) {
   if (redisClient) {
     backend = new RedisCache(redisClient);
   } else {

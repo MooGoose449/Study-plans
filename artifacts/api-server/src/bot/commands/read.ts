@@ -9,7 +9,7 @@ import {
   markReadSuccessEmbed,
   errorEmbed,
 } from "../ui/embeds.js";
-import { planSelectMenu, unreadRow } from "../ui/components.js";
+import { planSelectMenu } from "../ui/components.js";
 import { EMOJI } from "../ui/emojis.js";
 
 export const data = new SlashCommandBuilder()
@@ -33,16 +33,9 @@ export async function execute(
     return;
   }
 
-  // Only one plan — mark it automatically
-  if (activePlans.length === 1) {
-    await doMarkRead(interaction, discordId, activePlans[0]!.id);
-    return;
-  }
-
-  // Multiple plans — let user choose
   await interaction.editReply({
     content: `${EMOJI.BOOK} Which plan did you read today?`,
-    components: [planSelectMenu(activePlans, "sel:read_plan_select")],
+    components: [planSelectMenu(activePlans, "sel:read_plan_select:read")],
   });
 }
 
@@ -73,6 +66,6 @@ export async function doMarkRead(
     embeds: [
       markReadSuccessEmbed(plan, result.newStreak, result.isComplete),
     ],
-    components: result.isComplete ? [] : [unreadRow(plan.id)],
+    components: [],
   });
 }

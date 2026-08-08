@@ -23,6 +23,7 @@ import {
   parseDaysOfWeek,
   getTodayUTC,
   daysBetween,
+  parseDisplayDate,
 } from "../utils/index.js";
 import { STANDARD_WORKS } from "../metadata/scriptures.js";
 import { CONFERENCES } from "../metadata/conferences.js";
@@ -101,13 +102,14 @@ async function handlePlanCreate(
 
   if (mode === "dated") {
     const goalDateRaw = interaction.fields.getTextInputValue("goal_date").trim();
-    if (!isValidDate(goalDateRaw)) {
+    const parsedGoalDate = parseDisplayDate(goalDateRaw);
+    if (!parsedGoalDate) {
       await interaction.reply({
-        embeds: [errorEmbed("Invalid date format. Please use YYYY-MM-DD, e.g. `2025-12-31`.")],
+        embeds: [errorEmbed("Invalid date format. Please use DD-MM-YYYY, e.g. `31-12-2025`.")],
       });
       return;
     }
-    const days = daysBetween(today, goalDateRaw);
+    const days = daysBetween(today, parsedGoalDate);
     if (days < 1) {
       await interaction.reply({
         embeds: [errorEmbed("Goal date must be in the future.")],
@@ -115,7 +117,7 @@ async function handlePlanCreate(
       return;
     }
     unitsPerDay = Math.max(1, Math.ceil(totalItems / days));
-    goalDate = goalDateRaw;
+    goalDate = parsedGoalDate;
   } else {
     const unitsRaw = interaction.fields.getTextInputValue("units_per_day").trim();
     unitsPerDay = parseInt(unitsRaw, 10);
@@ -205,13 +207,14 @@ async function handlePlanEdit(
     // Switching to daily pace — clear goal date so both can't coexist
     await updatePlan(planId, discordId, { unitsPerDay: n, goalDate: null });
   } else if (field === "goal_date") {
-    if (!isValidDate(value)) {
+    const goalDate = parseDisplayDate(value);
+    if (!goalDate) {
       await interaction.reply({
-        embeds: [errorEmbed("Invalid date format. Use YYYY-MM-DD, e.g. `2025-12-31`.")],
+        embeds: [errorEmbed("Invalid date format. Use DD-MM-YYYY, e.g. `31-12-2025`.")],
       });
       return;
     }
-    const days = daysBetween(getTodayUTC(), value);
+    const days = daysBetween(getTodayUTC(), goalDate);
     if (days < 1) {
       await interaction.reply({
         embeds: [errorEmbed("Goal date must be in the future.")],
@@ -220,7 +223,7 @@ async function handlePlanEdit(
     }
     // Switching to goal-date pace — compute daily units and store both
     const unitsPerDay = Math.max(1, Math.ceil(plan.totalItems / days));
-    await updatePlan(planId, discordId, { goalDate: value, unitsPerDay });
+    await updatePlan(planId, discordId, { goalDate, unitsPerDay });
   }
 
   const updated = await getPlan(planId, discordId);
