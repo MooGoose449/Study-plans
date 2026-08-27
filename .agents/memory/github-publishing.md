@@ -8,3 +8,4 @@ Use the authenticated GitHub SDK client from the connected `github` integration 
 **Why:** The workspace's normal git transport may not have GitHub credentials, while the authorized connector can publish safely without exposing tokens.
 
 **How to apply:** Confirm the remote branch SHA first, build from the local HEAD, update the ref without force, and verify the resulting remote commit SHA afterward.
+
