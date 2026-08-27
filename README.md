@@ -21,11 +21,12 @@ A Discord bot that helps members of The Church of Jesus Christ of Latter-day Sai
 | `/help` | Show all commands and tips |
 | `/plan create` | Start a new study plan (max 10 active) |
 | `/plan list` | List all your plans with progress bars |
-| `/plan view` | View details for a specific plan |
 | `/plan edit` | Edit name, daily pace, goal date, or pause |
 | `/plan delete` | Delete a plan |
 | `/today` | See today's reading for all active plans |
 | `/read` | Mark today's reading complete. Choose from a list if you have multiple plans |
+| `/timezone set` | Set your timezone, such as `America/Phoenix` |
+| `/timezone view` | View your saved timezone |
 | `/reminder set` | Set up a daily DM reminder |
 | `/reminder edit` | Edit reminder settings |
 | `/reminder view` | View current reminder settings |

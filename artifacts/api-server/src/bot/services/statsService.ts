@@ -51,6 +51,7 @@ export type LeaderboardEntry = {
   rank: number;
   discordId: string;
   username: string;
+  serverName: string;
   value: number;
 };
 
@@ -62,6 +63,7 @@ export async function getGlobalLeaderboard(
     .select({
       discordId: statisticsTable.discordId,
       username: usersTable.username,
+      serverName: usersTable.lastServerName,
       currentStreak: statisticsTable.currentStreak,
       longestStreak: statisticsTable.longestStreak,
     })
@@ -80,6 +82,7 @@ export async function getGlobalLeaderboard(
     rank: i + 1,
     discordId: row.discordId,
     username: row.username,
+    serverName: row.serverName ?? "Unknown server",
     value: type === "current" ? row.currentStreak : row.longestStreak,
   }));
 }
@@ -95,6 +98,7 @@ export async function getServerLeaderboard(
     .select({
       discordId: statisticsTable.discordId,
       username: usersTable.username,
+      serverName: usersTable.lastServerName,
       currentStreak: statisticsTable.currentStreak,
       longestStreak: statisticsTable.longestStreak,
     })
@@ -114,6 +118,7 @@ export async function getServerLeaderboard(
     rank: i + 1,
     discordId: row.discordId,
     username: row.username,
+    serverName: row.serverName ?? "Unknown server",
     value: type === "current" ? row.currentStreak : row.longestStreak,
   }));
 }

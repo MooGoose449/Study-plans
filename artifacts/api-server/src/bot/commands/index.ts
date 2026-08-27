@@ -8,6 +8,7 @@ import * as stats from "./stats.js";
 import * as leaderboard from "./leaderboard.js";
 import * as help from "./help.js";
 import * as ping from "./ping.js";
+import * as timezone from "./timezone.js";
 
 // Use a loose data type to accommodate SlashCommandOptionsOnlyBuilder,
 // SlashCommandSubcommandsOnlyBuilder, and SlashCommandBuilder equally.
@@ -26,6 +27,7 @@ export const commands: Command[] = [
   leaderboard,
   help,
   ping,
+  timezone,
 ];
 
 /** Map from command name to handler. */

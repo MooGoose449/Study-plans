@@ -6,6 +6,7 @@ export const usersTable = pgTable("users", {
   discordId: text("discord_id").primaryKey(),
   username: text("username").notNull(),
   timezone: text("timezone").notNull().default("UTC"),
+  lastServerName: text("last_server_name"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

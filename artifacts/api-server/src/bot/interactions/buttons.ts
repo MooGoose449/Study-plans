@@ -1,6 +1,6 @@
 import type { ButtonInteraction, Client } from "discord.js";
 import { markAsRead, markAsUnread } from "../services/readService.js";
-import { getPlan, deletePlan, updatePlan, getActivePlans, hasReadToday } from "../services/planService.js";
+import { getPlan, deletePlan, updatePlan, getActivePlans, getUserPlans, hasReadToday } from "../services/planService.js";
 import { getUserStats } from "../services/statsService.js";
 import { upsertUser } from "../services/userService.js";
 import {
@@ -8,8 +8,9 @@ import {
   errorEmbed,
   successEmbed,
   todayPlanEmbed,
+  planListEmbed,
 } from "../ui/embeds.js";
-import { todayActionRow, unreadRow } from "../ui/components.js";
+import { todayActionRow, unreadRow, paginationRow } from "../ui/components.js";
 import { getTodayUTC } from "../utils/index.js";
 import { EMOJI } from "../ui/emojis.js";
 
@@ -24,7 +25,7 @@ export async function handleButton(
   const [, action, ...params] = interaction.customId.split(":");
   const discordId = interaction.user.id;
 
-  await upsertUser(discordId, interaction.user.username);
+  await upsertUser(discordId, interaction.user.username, interaction.guild?.name);
 
   switch (action) {
     case "mark_read":
@@ -48,8 +49,7 @@ export async function handleButton(
       break;
 
     case "page":
-      // handled per-feature; generic no-op here
-      await interaction.deferUpdate();
+      await handlePage(interaction, discordId, params[0], Number(params[1]));
       break;
 
     default:
@@ -57,6 +57,31 @@ export async function handleButton(
         embeds: [errorEmbed("That button is no longer active. Try the command again.")],
       });
   }
+}
+
+async function handlePage(
+  interaction: ButtonInteraction,
+  discordId: string,
+  baseId: string | undefined,
+  page: number,
+) {
+  if (baseId !== "plan_list" || !Number.isInteger(page) || page < 0) {
+    await interaction.reply({ embeds: [errorEmbed("That page is no longer available.")] });
+    return;
+  }
+
+  await interaction.deferUpdate();
+  const plans = await getUserPlans(discordId);
+  const totalPages = Math.ceil(plans.length / 5);
+  if (totalPages === 0 || page >= totalPages) {
+    await interaction.followUp({ embeds: [errorEmbed("That page is no longer available.")] });
+    return;
+  }
+
+  await interaction.editReply({
+    embeds: [planListEmbed(plans, page)],
+    components: totalPages > 1 ? [paginationRow("plan_list", page, totalPages)] : [],
+  });
 }
 
 async function handleMarkRead(

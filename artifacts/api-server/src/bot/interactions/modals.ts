@@ -40,7 +40,7 @@ export async function handleModal(
   const [, action, ...params] = interaction.customId.split(":");
   const discordId = interaction.user.id;
 
-  await upsertUser(discordId, interaction.user.username);
+  await upsertUser(discordId, interaction.user.username, interaction.guild?.name);
 
   switch (action) {
     case "plan_delete_type":
@@ -105,7 +105,7 @@ async function handlePlanCreate(
     const parsedGoalDate = parseDisplayDate(goalDateRaw);
     if (!parsedGoalDate) {
       await interaction.reply({
-        embeds: [errorEmbed("Invalid date format. Please use DD-MM-YYYY, e.g. `31-12-2025`.")],
+        embeds: [errorEmbed("Invalid date format. Please use MM-DD-YYYY, e.g. `12-31-2025`.")],
       });
       return;
     }
@@ -210,7 +210,7 @@ async function handlePlanEdit(
     const goalDate = parseDisplayDate(value);
     if (!goalDate) {
       await interaction.reply({
-        embeds: [errorEmbed("Invalid date format. Use DD-MM-YYYY, e.g. `31-12-2025`.")],
+        embeds: [errorEmbed("Invalid date format. Use MM-DD-YYYY, e.g. `12-31-2025`.")],
       });
       return;
     }
@@ -242,6 +242,7 @@ async function handleReminderSet(
   const timeOfDay = interaction.fields.getTextInputValue("time_of_day").trim();
   const timezone = interaction.fields.getTextInputValue("timezone").trim();
   const daysRaw = interaction.fields.getTextInputValue("days_of_week").trim();
+  const customMessage = interaction.fields.getTextInputValue("custom_message").trim();
 
   // Validate time
   if (!isValidTime(timeOfDay)) {
@@ -281,6 +282,7 @@ async function handleReminderSet(
     timeOfDay,
     timezone,
     daysOfWeek,
+    customMessage,
   });
 
   // Reschedule the cron job

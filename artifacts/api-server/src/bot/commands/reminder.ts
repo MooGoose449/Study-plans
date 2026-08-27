@@ -37,7 +37,7 @@ export async function execute(
   interaction: ChatInputCommandInteraction,
 ): Promise<void> {
   const discordId = interaction.user.id;
-  await upsertUser(discordId, interaction.user.username);
+  await upsertUser(discordId, interaction.user.username, interaction.guild?.name);
 
   const subcommand = interaction.options.getSubcommand();
 
@@ -91,10 +91,20 @@ async function handleSetOrEdit(
     .setValue((existing?.daysOfWeek as number[] | undefined)?.join(",") ?? "0,1,2,3,4,5,6")
     .setRequired(true);
 
+  const messageInput = new TextInputBuilder()
+    .setCustomId("custom_message")
+    .setLabel("Custom message (optional)")
+    .setStyle(TextInputStyle.Paragraph)
+    .setPlaceholder("Time to study!")
+    .setValue(existing?.customMessage ?? "")
+    .setRequired(false)
+    .setMaxLength(500);
+
   modal.addComponents(
     new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(timeInput),
     new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(timezoneInput),
     new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(daysInput),
+    new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(messageInput),
   );
 
   await interaction.showModal(modal);

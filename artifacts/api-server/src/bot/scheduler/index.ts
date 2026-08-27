@@ -37,7 +37,10 @@ async function sendReminderDm(client: Client, discordId: string): Promise<void> 
     const embed = reminderDmEmbed(plans, streak);
     const rows = reminderActionRow(plans);
 
-    await user.send({ embeds: [embed], components: rows });
+    const content = settings.customMessage
+      ? `<@${discordId}> ${settings.customMessage}`
+      : `<@${discordId}> Time to study!`;
+    await user.send({ content, embeds: [embed], components: rows });
     logger.info({ discordId }, "Sent reminder DM");
   } catch (err) {
     // User may have DMs disabled — log but don't crash

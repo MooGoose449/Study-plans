@@ -21,6 +21,7 @@ export const reminderSettingsTable = pgTable("reminder_settings", {
   // HH:MM in 24-hour format, e.g. "08:00"
   timeOfDay: text("time_of_day").notNull().default("08:00"),
   timezone: text("timezone").notNull().default("UTC"),
+  customMessage: text("custom_message").notNull().default(""),
   // JSON array of day numbers: [1,2,3,4,5] for Mon-Fri
   daysOfWeek: jsonb("days_of_week")
     .notNull()

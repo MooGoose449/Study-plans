@@ -1,6 +1,7 @@
 import type { Client } from "discord.js";
 import { logger } from "../../lib/logger.js";
 import { getActivePlans } from "../services/planService.js";
+import { getReminderSettings } from "../services/reminderService.js";
 import { getUserStats } from "../services/statsService.js";
 import { reminderDmEmbed } from "../ui/embeds.js";
 import { reminderActionRow } from "../ui/components.js";
@@ -132,6 +133,7 @@ async function processTick() {
 async function processJob(job: ReminderJob): Promise<void> {
   if (!clientRef) throw new Error("DM queue client not initialized");
   const discordId = job.discordId;
+  const settings = await getReminderSettings(discordId);
 
   // Build payload (DB calls) at send time so data is fresh
   const plans = await getActivePlans(discordId);
@@ -145,7 +147,11 @@ async function processJob(job: ReminderJob): Promise<void> {
 
   try {
     const user = await clientRef.users.fetch(discordId);
-    await user.send({ embeds: [embed], components: rows });
+    const mention = `<@${discordId}>`;
+    const content = settings?.customMessage
+      ? `${mention} ${settings.customMessage}`
+      : `${mention} Time to study!`;
+    await user.send({ content, embeds: [embed], components: rows });
     logger.info({ discordId }, "Sent reminder DM (queued)");
   } catch (err: any) {
     // If Discord returns a 429 or Retry-After header we should respect it.

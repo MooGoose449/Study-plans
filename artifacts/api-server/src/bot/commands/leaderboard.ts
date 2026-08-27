@@ -46,7 +46,7 @@ export async function execute(
   await interaction.deferReply();
 
   const discordId = interaction.user.id;
-  await upsertUser(discordId, interaction.user.username);
+  await upsertUser(discordId, interaction.user.username, interaction.guild?.name);
 
   // Options are required; use the typed getter
   const type = interaction.options.getString("type", true) as "current" | "longest";
@@ -142,7 +142,6 @@ export async function execute(
     await interaction.followUp({
       content:
         "Unable to fetch server members (permissions or intent may be disabled). Showing global leaderboard instead.",
-      ephemeral: true,
     });
   }
 }

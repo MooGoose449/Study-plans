@@ -27,10 +27,18 @@ export async function execute(
   const discordId = interaction.user.id;
   const username = interaction.user.username;
 
-  await upsertUser(discordId, username);
+  await upsertUser(discordId, username, interaction.guild?.name);
   await checkAndBreakStreak(discordId);
 
-  const plans = await getActivePlans(discordId);
+  let plans;
+  try {
+    plans = await getActivePlans(discordId);
+  } catch {
+    await interaction.editReply({
+      embeds: [errorEmbed("I couldn't load your active plans. Please try `/today` again in a moment.")],
+    });
+    return;
+  }
 
   if (plans.length === 0) {
     await interaction.editReply({
@@ -60,8 +68,13 @@ export async function execute(
   const embeds = [];
   const componentRows = [];
 
-  for (const plan of plans) {
-    const alreadyRead = await hasReadToday(plan.id, today);
+  for (const plan of plans.slice(0, 10)) {
+    let alreadyRead = false;
+    try {
+      alreadyRead = await hasReadToday(plan.id, today);
+    } catch {
+      alreadyRead = false;
+    }
     embeds.push(todayPlanEmbed(plan, alreadyRead, streak));
     if (!plan.isComplete) {
       componentRows.push(todayActionRow(plan.id, alreadyRead));
@@ -69,7 +82,7 @@ export async function execute(
   }
 
   // Discord allows max 5 action rows and 10 embeds
-  const safeEmbeds = embeds.slice(0, 10);
+  const safeEmbeds = embeds;
   const safeRows = componentRows.slice(0, 5);
 
   // Add footer to last embed

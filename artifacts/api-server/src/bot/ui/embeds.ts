@@ -224,7 +224,8 @@ export function leaderboardEmbed(
   const lines = entries.map((e) => {
     const medal = medals[e.rank] ?? `**${ordinal(e.rank)}**`;
     const days = `${e.value} day${e.value !== 1 ? "s" : ""}`;
-    return `${medal} **${e.username}** ${EMOJI.STREAK} ${days}`;
+    const server = scope === "global" ? `\n-# ${e.serverName}` : "";
+    return `${medal} **${e.username}**${server} ${EMOJI.STREAK} ${days}`;
   });
 
   return new EmbedBuilder()

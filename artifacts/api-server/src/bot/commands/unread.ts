@@ -19,7 +19,7 @@ export async function execute(
   await interaction.deferReply();
 
   const discordId = interaction.user.id;
-  await upsertUser(discordId, interaction.user.username);
+  await upsertUser(discordId, interaction.user.username, interaction.guild?.name);
 
   const activePlans = await getActivePlans(discordId);
 

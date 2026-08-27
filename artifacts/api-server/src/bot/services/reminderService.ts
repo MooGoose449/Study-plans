@@ -18,6 +18,7 @@ export async function upsertReminderSettings(
     enabled?: boolean;
     timeOfDay?: string;
     timezone?: string;
+    customMessage?: string;
     daysOfWeek?: number[];
   },
 ): Promise<ReminderSettings> {
@@ -38,6 +39,7 @@ export async function upsertReminderSettings(
         enabled: settings.enabled ?? true,
         timeOfDay: settings.timeOfDay ?? "08:00",
         timezone: settings.timezone ?? "UTC",
+        customMessage: settings.customMessage ?? "",
         daysOfWeek: settings.daysOfWeek ?? [0, 1, 2, 3, 4, 5, 6],
       })
       .returning();

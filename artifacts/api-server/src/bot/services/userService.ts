@@ -7,13 +7,14 @@ import type { User } from "@workspace/db";
 export async function upsertUser(
   discordId: string,
   username: string,
+  serverName?: string,
 ): Promise<User> {
   await db
     .insert(usersTable)
     .values({ discordId, username })
     .onConflictDoUpdate({
       target: usersTable.discordId,
-      set: { username, updatedAt: new Date() },
+      set: { username, ...(serverName ? { lastServerName: serverName } : {}), updatedAt: new Date() },
     });
 
   // Ensure statistics row exists

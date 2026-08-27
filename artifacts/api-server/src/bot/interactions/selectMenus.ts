@@ -40,7 +40,7 @@ export async function handleSelectMenu(
   const [, action, ...params] = interaction.customId.split(":");
   const discordId = interaction.user.id;
 
-  await upsertUser(discordId, interaction.user.username);
+  await upsertUser(discordId, interaction.user.username, interaction.guild?.name);
 
   switch (action) {
     case "source_type":
@@ -57,10 +57,6 @@ export async function handleSelectMenu(
 
     case "plan_pace_type":
       await handlePlanPaceTypeSelect(interaction);
-      break;
-
-    case "plan_view":
-      await handlePlanView(interaction, discordId);
       break;
 
     case "plan_edit_select":
@@ -198,9 +194,9 @@ async function handlePlanPaceTypeSelect(interaction: StringSelectMenuInteraction
       new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
         new TextInputBuilder()
           .setCustomId("goal_date")
-          .setLabel("Goal completion date (DD-MM-YYYY)")
+          .setLabel("Goal completion date (MM-DD-YYYY)")
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder("31-12-2025")
+          .setPlaceholder("12-31-2025")
           .setRequired(true),
       ),
     );
@@ -210,19 +206,6 @@ async function handlePlanPaceTypeSelect(interaction: StringSelectMenuInteraction
 }
 
 // ── Plan management ───────────────────────────────────────────────────────
-
-async function handlePlanView(
-  interaction: StringSelectMenuInteraction,
-  discordId: string,
-) {
-  const planId = Number(interaction.values[0]);
-  const plan = await getPlan(planId, discordId);
-  if (!plan) {
-    await interaction.update({ embeds: [errorEmbed("Plan not found.")], components: [] });
-    return;
-  }
-  await interaction.update({ embeds: [planDetailEmbed(plan)], components: [] });
-}
 
 async function handlePlanEditSelect(
   interaction: StringSelectMenuInteraction,
@@ -297,7 +280,7 @@ async function handlePlanEditField(
   } else {
     input = new TextInputBuilder()
       .setCustomId("value")
-      .setLabel("Goal Date (DD-MM-YYYY, leave blank to remove)")
+      .setLabel("Goal Date (MM-DD-YYYY, leave blank to remove)")
       .setStyle(TextInputStyle.Short)
       .setValue(plan.goalDate ? formatDisplayDate(plan.goalDate) : "")
       .setRequired(false);
@@ -344,10 +327,10 @@ async function handlePlanEditPaceTypeSelect(
       new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
         new TextInputBuilder()
           .setCustomId("value")
-          .setLabel("Goal completion date (DD-MM-YYYY)")
+          .setLabel("Goal completion date (MM-DD-YYYY)")
           .setStyle(TextInputStyle.Short)
           .setValue(plan.goalDate ? formatDisplayDate(plan.goalDate) : "")
-          .setPlaceholder("31-12-2025")
+          .setPlaceholder("12-31-2025")
           .setRequired(true),
       ),
     );
@@ -403,13 +386,15 @@ async function handleReadPlanSelect(
               : "Plan not found.",
           ),
         ],
-        ephemeral: true,
       });
       return;
     }
 
     const plan = await getPlan(planId, discordId);
-    if (!plan) return;
+    if (!plan) {
+      await interaction.followUp({ embeds: [errorEmbed("Plan not found.")] });
+      return;
+    }
     await interaction.editReply({
       content: "",
       embeds: [
@@ -437,7 +422,10 @@ async function handleReadPlanSelect(
   }
 
   const plan = await getPlan(planId, discordId);
-  if (!plan) return;
+  if (!plan) {
+    await interaction.followUp({ embeds: [errorEmbed("Plan not found.")] });
+    return;
+  }
 
   await interaction.editReply({
     content: "",

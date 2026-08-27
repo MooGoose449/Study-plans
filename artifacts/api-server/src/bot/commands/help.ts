@@ -17,8 +17,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         value: [
           "`/plan create`: Start a new study plan (scripture or General Conference)",
           "`/plan list`: See all your plans with progress",
-          "`/plan view`: View details for a specific plan",
-          "`/plan edit`: Change a plan's name, pace, goal date, pause it, or manage reminders",
+          "`/plan edit`: Change a plan's name, pace, goal date, or pause it",
           "`/plan delete`: Remove a plan",
         ].join("\n"),
       },
@@ -36,6 +35,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
           "`/streak [user]`: View current and longest streak",
           "`/stats [user]`: Full reading statistics",
           "`/leaderboard`: Top 10 by current or longest streak, server or global",
+          "`/timezone`: Set or view your timezone",
         ].join("\n"),
       },
       {
@@ -47,7 +47,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         value: [
           "• Set a **goal date** when creating a plan and the bot calculates your required daily pace",
           "• Use `/today` every day and hit **Mark as Read** to build your streak",
-          "• Reminders include Mark as Read buttons directly in the DM",
+          "• Use `/reminder set` to choose a time, timezone, days, and custom DM message",
           "• You can have multiple active plans at once (e.g. Book of Mormon + April 2026 conference)",
         ].join("\n"),
       },
