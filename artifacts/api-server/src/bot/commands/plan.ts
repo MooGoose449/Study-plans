@@ -17,6 +17,7 @@ import {
 import { upsertUser } from "../services/userService.js";
 import {
   planListEmbed,
+  planDetailEmbed,
   errorEmbed,
   successEmbed,
   selectSourceTypeEmbed,

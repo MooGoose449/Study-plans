@@ -71,11 +71,10 @@ lib/db/src/schema/
 |---|---|
 | `/plan create` | Create a study plan (select scripture/conference → configure) |
 | `/plan list` | List all plans with progress |
-| `/plan view [id]` | View plan details |
 | `/plan edit [id]` | Edit name, units/day, goal date, or pause |
 | `/plan delete [id]` | Delete a plan |
 | `/today` | Today's readings for all active plans + Mark as Read buttons |
-| `/read [plan]` | Mark today's reading complete |
+| `/read` | Mark today's reading complete; choose a plan when needed |
 | `/streak [user]` | View current and longest streak |
 | `/stats [user]` | Full statistics |
 | `/leaderboard [type] [scope]` | Top 10 by current or longest streak, server or global |

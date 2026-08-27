@@ -24,30 +24,6 @@ function buildCronExpression(time: string, days: number[]): string {
   return `${mm ?? 0} ${hh ?? 8} * * ${dayExpr}`;
 }
 
-/** Send a reminder DM to a single user. */
-async function sendReminderDm(client: Client, discordId: string): Promise<void> {
-  try {
-    const plans = await getActivePlans(discordId);
-    if (plans.length === 0) return; // nothing to remind about
-
-    const stats = await getUserStats(discordId);
-    const streak = stats?.currentStreak ?? 0;
-
-    const user = await client.users.fetch(discordId);
-    const embed = reminderDmEmbed(plans, streak);
-    const rows = reminderActionRow(plans);
-
-    const content = settings.customMessage
-      ? `<@${discordId}> ${settings.customMessage}`
-      : `<@${discordId}> Time to study!`;
-    await user.send({ content, embeds: [embed], components: rows });
-    logger.info({ discordId }, "Sent reminder DM");
-  } catch (err) {
-    // User may have DMs disabled — log but don't crash
-    logger.warn({ discordId, err }, "Failed to send reminder DM");
-  }
-}
-
 /** Schedule (or reschedule) reminders for a single user. */
 export function scheduleReminder(
   client: Client,
