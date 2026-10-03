@@ -40,6 +40,15 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         ].join("\n"),
       },
       {
+        name: "Reminders",
+        value: [
+          "`/reminder set`: Set a daily DM reminder",
+          "`/reminder edit`: Change your reminder",
+          "`/reminder view`: View your reminder settings",
+          "`/reminder disable`: Turn reminders off",
+        ].join("\n"),
+      },
+      {
         name: "Utility",
         value: ["`/ping`: Check the bot's latency and responsiveness"].join("\n"),
       },
