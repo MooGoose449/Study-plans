@@ -7,7 +7,7 @@ import {
   ActionRowBuilder,
   type ModalActionRowComponentBuilder,
 } from "discord.js";
-import { upsertUser } from "../services/userService.js";
+import { getUser, upsertUser } from "../services/userService.js";
 import { getReminderSettings, disableReminders } from "../services/reminderService.js";
 import {
   reminderSettingsEmbed,
@@ -59,7 +59,7 @@ async function handleSetOrEdit(
   interaction: ChatInputCommandInteraction,
   discordId: string,
 ) {
-  const existing = await getReminderSettings(discordId);
+  const existing = await getReminderSettings(discordId);\n  const user = await getUser(discordId);
 
   const modal = new ModalBuilder()
     .setCustomId("mod:reminder_set")
@@ -74,14 +74,6 @@ async function handleSetOrEdit(
     .setRequired(true)
     .setMinLength(5)
     .setMaxLength(5);
-
-  const timezoneInput = new TextInputBuilder()
-    .setCustomId("timezone")
-    .setLabel("Timezone (e.g. America/Denver)")
-    .setStyle(TextInputStyle.Short)
-    .setPlaceholder("America/Denver")
-    .setValue(existing?.timezone ?? "UTC")
-    .setRequired(true);
 
   const daysInput = new TextInputBuilder()
     .setCustomId("days_of_week")
@@ -102,7 +94,6 @@ async function handleSetOrEdit(
 
   modal.addComponents(
     new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(timeInput),
-    new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(timezoneInput),
     new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(daysInput),
     new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(messageInput),
   );
