@@ -19,6 +19,7 @@ import {
 import {
   isValidTime,
   isValidDate,
+  isValidTimezone,
   parseDaysOfWeek,
   getTodayInTimezone,
   daysBetween,
