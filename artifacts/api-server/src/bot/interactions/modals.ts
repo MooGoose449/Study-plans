@@ -21,7 +21,7 @@ import {
   isValidDate,
   isValidTimezone,
   parseDaysOfWeek,
-  getTodayUTC,
+  getTodayInTimezone,
   daysBetween,
   parseDisplayDate,
 } from "../utils/index.js";
@@ -94,7 +94,7 @@ async function handlePlanCreate(
   }
 
   const name = interaction.fields.getTextInputValue("plan_name").trim();
-  const today = getTodayUTC();
+  const user = await getUser(discordId);\n  const today = getTodayInTimezone(user?.timezone ?? "UTC");
   const totalItems = parseInt(totalItemsStr ?? "0", 10) || getSourceTotalItems(sourceType, sourceId);
 
   let unitsPerDay: number;
@@ -214,7 +214,7 @@ async function handlePlanEdit(
       });
       return;
     }
-    const days = daysBetween(getTodayUTC(), goalDate);
+    const user = await getUser(discordId);\n    const days = daysBetween(getTodayInTimezone(user?.timezone ?? "UTC"), goalDate);
     if (days < 1) {
       await interaction.reply({
         embeds: [errorEmbed("Goal date must be in the future.")],
