@@ -80,7 +80,6 @@ Each study plan should store:
 Commands:
 
 * /plan create
-* /plan view
 * /plan edit
 * /plan delete
 * /plan list
@@ -143,7 +142,7 @@ Commands:
 Users should be able to configure:
 
 * Time
-* Time zone
+* Time zone (from the user's saved timezone)
 * Days of the week
 
 Reminders should be sent through Discord DMs.

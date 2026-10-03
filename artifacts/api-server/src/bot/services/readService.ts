@@ -1,5 +1,6 @@
 import { pool } from "@workspace/db";
-import { getTodayUTC, streakStatus } from "../utils/index.js";
+import { getTodayInTimezone, streakStatus } from "../utils/index.js";
+import { getUser } from "./userService.js";
 
 export type MarkReadResult =
   | { success: true; newPosition: number; isComplete: boolean; streakUpdated: boolean; newStreak: number }
@@ -17,7 +18,7 @@ export async function markAsUnread(
   planId: number,
   discordId: string,
 ): Promise<MarkUnreadResult> {
-  const today = getTodayUTC();
+  const user = await getUser(discordId);\n  const today = getTodayInTimezone(user?.timezone ?? "UTC");
 
   const client = await pool.connect();
   try {

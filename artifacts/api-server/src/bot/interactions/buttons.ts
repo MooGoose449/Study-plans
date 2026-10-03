@@ -2,7 +2,7 @@ import type { ButtonInteraction, Client } from "discord.js";
 import { markAsRead, markAsUnread } from "../services/readService.js";
 import { getPlan, deletePlan, updatePlan, getActivePlans, getUserPlans, hasReadToday } from "../services/planService.js";
 import { getUserStats } from "../services/statsService.js";
-import { upsertUser } from "../services/userService.js";
+import { getUser, upsertUser } from "../services/userService.js";
 import {
   markReadSuccessEmbed,
   errorEmbed,
@@ -11,7 +11,7 @@ import {
   planListEmbed,
 } from "../ui/embeds.js";
 import { todayActionRow, unreadRow, paginationRow } from "../ui/components.js";
-import { getTodayUTC } from "../utils/index.js";
+import { getTodayInTimezone } from "../utils/index.js";
 import { EMOJI } from "../ui/emojis.js";
 
 /**
@@ -156,7 +156,7 @@ async function handleViewToday(
   const plans = await getActivePlans(discordId);
   const stats = await getUserStats(discordId);
   const streak = stats?.currentStreak ?? 0;
-  const today = getTodayUTC();
+  const user = await getUser(discordId);\n  const today = getTodayInTimezone(user?.timezone ?? "UTC");
 
   if (plans.length === 0) {
     await interaction.editReply({

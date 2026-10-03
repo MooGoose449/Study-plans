@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, type ChatInputCommandInteraction } from "discord.js";
 import { getUser, updateUserTimezone } from "../services/userService.js";
+import { getReminderSettings, upsertReminderSettings } from "../services/reminderService.js";
 import { errorEmbed, successEmbed, infoEmbed } from "../ui/embeds.js";
 import { isValidTimezone } from "../utils/index.js";
 

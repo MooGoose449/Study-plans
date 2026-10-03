@@ -75,14 +75,6 @@ async function handleSetOrEdit(
     .setMinLength(5)
     .setMaxLength(5);
 
-  const timezoneInput = new TextInputBuilder()
-    .setCustomId("timezone")
-    .setLabel("Timezone (e.g. America/Denver)")
-    .setStyle(TextInputStyle.Short)
-    .setPlaceholder("America/Denver")
-    .setValue(existing?.timezone ?? "UTC")
-    .setRequired(true);
-
   const daysInput = new TextInputBuilder()
     .setCustomId("days_of_week")
     .setLabel("Days of week (0=Sun … 6=Sat, comma-separated)")
@@ -102,7 +94,6 @@ async function handleSetOrEdit(
 
   modal.addComponents(
     new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(timeInput),
-    new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(timezoneInput),
     new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(daysInput),
     new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(messageInput),
   );

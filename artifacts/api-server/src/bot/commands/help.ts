@@ -35,7 +35,17 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
           "`/streak [user]`: View current and longest streak",
           "`/stats [user]`: Full reading statistics",
           "`/leaderboard`: Top 10 by current or longest streak, server or global",
-          "`/timezone`: Set or view your timezone",
+          "`/timezone set`: Set your timezone (used for dates and reminders)",
+          "`/timezone view`: View your current timezone",
+        ].join("\n"),
+      },
+      {
+        name: "Reminders",
+        value: [
+          "`/reminder set`: Set a daily DM reminder",
+          "`/reminder edit`: Change your reminder",
+          "`/reminder view`: View your reminder settings",
+          "`/reminder disable`: Turn reminders off",
         ].join("\n"),
       },
       {
@@ -47,7 +57,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         value: [
           "• Set a **goal date** when creating a plan and the bot calculates your required daily pace",
           "• Use `/today` every day and hit **Mark as Read** to build your streak",
-          "• Use `/reminder set` to choose a time, timezone, days, and custom DM message",
+          "• Use `/reminder set` to choose a time, days, and custom DM message; it uses your saved timezone",
           "• You can have multiple active plans at once (e.g. Book of Mormon + April 2026 conference)",
         ].join("\n"),
       },

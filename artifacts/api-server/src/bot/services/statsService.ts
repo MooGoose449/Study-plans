@@ -2,7 +2,8 @@ import { db } from "@workspace/db";
 import { statisticsTable, studyPlansTable, usersTable } from "@workspace/db";
 import { eq, desc, and, inArray } from "drizzle-orm";
 import type { Statistics } from "@workspace/db";
-import { getTodayUTC, streakStatus } from "../utils/index.js";
+import { getTodayInTimezone, streakStatus } from "../utils/index.js";
+import { getUser } from "./userService.js";
 
 /** Get statistics for a user. */
 export async function getUserStats(
@@ -20,7 +21,7 @@ export async function checkAndBreakStreak(discordId: string): Promise<void> {
   });
   if (!stats || !stats.lastReadDate) return;
 
-  const today = getTodayUTC();
+  const user = await getUser(discordId);\n  const today = getTodayInTimezone(user?.timezone ?? "UTC");
   const status = streakStatus(stats.lastReadDate, today);
 
   if (status === "reset") {
