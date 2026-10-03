@@ -1,5 +1,5 @@
 import type { ModalSubmitInteraction, Client } from "discord.js";
-import { upsertUser } from "../services/userService.js";
+import { getUser, upsertUser } from "../services/userService.js";
 import {
   createPlan,
   getPlan,
@@ -240,7 +240,7 @@ async function handleReminderSet(
   client: Client,
 ) {
   const timeOfDay = interaction.fields.getTextInputValue("time_of_day").trim();
-  const timezone = interaction.fields.getTextInputValue("timezone").trim();
+  const user = await getUser(discordId);\n  const timezone = user?.timezone ?? "UTC";
   const daysRaw = interaction.fields.getTextInputValue("days_of_week").trim();
   const customMessage = interaction.fields.getTextInputValue("custom_message").trim();
 
