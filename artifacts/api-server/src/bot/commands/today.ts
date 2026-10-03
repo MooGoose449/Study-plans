@@ -25,73 +25,65 @@ export async function execute(
   await interaction.deferReply();
 
   const discordId = interaction.user.id;
-  const username = interaction.user.username;
 
-  await upsertUser(discordId, username, interaction.guild?.name);
-  await checkAndBreakStreak(discordId);
-
-  let plans;
   try {
-    plans = await getActivePlans(discordId);
-  } catch {
-    await interaction.editReply({
-      embeds: [errorEmbed("I couldn't load your active plans. Please try `/today` again in a moment.")],
-    });
-    return;
-  }
+    const user = await upsertUser(
+      discordId,
+      interaction.user.username,
+      interaction.guild?.name,
+    );
+    await checkAndBreakStreak(discordId);
 
-  if (plans.length === 0) {
+    const timezone = user.timezone || "UTC";
+    const today = getTodayInTimezone(timezone);
+    const plans = await getActivePlans(discordId);
+
+    if (plans.length === 0) {
+      await interaction.editReply({
+        embeds: [
+          infoEmbed(
+            `${EMOJI.BOOK} No Active Plans`,
+            "You have no active study plans. Use `/plan create` to get started!",
+          ),
+        ],
+      });
+      return;
+    }
+
+    const stats = await getUserStats(discordId);
+    const streak = stats?.currentStreak ?? 0;
+    const reminderSettings = await getReminderSettings(discordId);
+
+    const embeds = [];
+    const componentRows = [];
+
+    for (const plan of plans.slice(0, 10)) {
+      const alreadyRead = await hasReadToday(plan.id, today);
+      embeds.push(todayPlanEmbed(plan, alreadyRead, streak));
+      if (!plan.isComplete) {
+        componentRows.push(todayActionRow(plan.id, alreadyRead));
+      }
+    }
+
+    const reminderFooter = reminderSettings?.enabled
+      ? `${EMOJI.BELL} Reminder: **${reminderSettings.timeOfDay}** (${reminderSettings.timezone}) • ${formatDaysOfWeek(reminderSettings.daysOfWeek as number[])}`
+      : `${EMOJI.BELL_OFF} No reminder set. Use `/reminder set`.`,
+
+    embeds[embeds.length - 1]!.setFooter({
+      text: `Today: ${today} • Timezone: ${timezone} • ${reminderFooter}`,
+    });
+
+    await interaction.editReply({
+      embeds,
+      components: componentRows.slice(0, 5),
+    });
+  } catch (err) {
     await interaction.editReply({
       embeds: [
-        infoEmbed(
-          `${EMOJI.BOOK} No Active Plans`,
-          "You have no active study plans. Use `/plan create` to get started!",
+        errorEmbed(
+          "I couldn't load today's reading right now. Please try `/today` again. If it keeps happening, check `/timezone view` and `/plan list`.",
         ),
       ],
     });
-    return;
   }
-
-  const stats = await getUserStats(discordId);
-  const streak = stats?.currentStreak ?? 0;
-  const today = getTodayUTC();
-
-  // Build reminder footer text
-  const reminderSettings = await getReminderSettings(discordId);
-  let reminderFooter = "";
-  if (reminderSettings?.enabled) {
-    reminderFooter = `\n${EMOJI.BELL} Reminder set for **${reminderSettings.timeOfDay}** (${reminderSettings.timezone}) on ${formatDaysOfWeek(reminderSettings.daysOfWeek as number[])}`;
-  } else {
-    reminderFooter = `\n${EMOJI.BELL_OFF} No reminders set. Use \`/plan edit\` to add one.`;
-  }
-
-  const embeds = [];
-  const componentRows = [];
-
-  for (const plan of plans.slice(0, 10)) {
-    let alreadyRead = false;
-    try {
-      alreadyRead = await hasReadToday(plan.id, today);
-    } catch {
-      alreadyRead = false;
-    }
-    embeds.push(todayPlanEmbed(plan, alreadyRead, streak));
-    if (!plan.isComplete) {
-      componentRows.push(todayActionRow(plan.id, alreadyRead));
-    }
-  }
-
-  // Discord allows max 5 action rows and 10 embeds
-  const safeEmbeds = embeds;
-  const safeRows = componentRows.slice(0, 5);
-
-  // Add footer to last embed
-  if (safeEmbeds.length > 0) {
-    safeEmbeds[safeEmbeds.length - 1]!.setFooter({ text: reminderFooter.trim() });
-  }
-
-  await interaction.editReply({
-    embeds: safeEmbeds,
-    components: safeRows,
-  });
 }
