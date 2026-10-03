@@ -7,7 +7,7 @@ import {
   ActionRowBuilder,
   type ModalActionRowComponentBuilder,
 } from "discord.js";
-import { getUser, upsertUser } from "../services/userService.js";
+import { upsertUser } from "../services/userService.js";
 import { getReminderSettings, disableReminders } from "../services/reminderService.js";
 import {
   reminderSettingsEmbed,
@@ -59,7 +59,7 @@ async function handleSetOrEdit(
   interaction: ChatInputCommandInteraction,
   discordId: string,
 ) {
-  const existing = await getReminderSettings(discordId);\n  const user = await getUser(discordId);
+  const existing = await getReminderSettings(discordId);
 
   const modal = new ModalBuilder()
     .setCustomId("mod:reminder_set")
