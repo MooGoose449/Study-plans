@@ -19,7 +19,6 @@ import {
 import {
   isValidTime,
   isValidDate,
-  isValidTimezone,
   parseDaysOfWeek,
   getTodayInTimezone,
   daysBetween,
@@ -94,7 +93,8 @@ async function handlePlanCreate(
   }
 
   const name = interaction.fields.getTextInputValue("plan_name").trim();
-  const user = await getUser(discordId);\n  const today = getTodayInTimezone(user?.timezone ?? "UTC");
+  const user = await getUser(discordId);
+  const today = getTodayInTimezone(user?.timezone ?? "UTC");
   const totalItems = parseInt(totalItemsStr ?? "0", 10) || getSourceTotalItems(sourceType, sourceId);
 
   let unitsPerDay: number;
@@ -214,7 +214,8 @@ async function handlePlanEdit(
       });
       return;
     }
-    const user = await getUser(discordId);\n    const days = daysBetween(getTodayInTimezone(user?.timezone ?? "UTC"), goalDate);
+    const user = await getUser(discordId);
+    const days = daysBetween(getTodayInTimezone(user?.timezone ?? "UTC"), goalDate);
     if (days < 1) {
       await interaction.reply({
         embeds: [errorEmbed("Goal date must be in the future.")],
@@ -240,7 +241,8 @@ async function handleReminderSet(
   client: Client,
 ) {
   const timeOfDay = interaction.fields.getTextInputValue("time_of_day").trim();
-  const user = await getUser(discordId);\n  const timezone = user?.timezone ?? "UTC";
+  const user = await getUser(discordId);
+  const timezone = user?.timezone ?? "UTC";
   const daysRaw = interaction.fields.getTextInputValue("days_of_week").trim();
   const customMessage = interaction.fields.getTextInputValue("custom_message").trim();
 
